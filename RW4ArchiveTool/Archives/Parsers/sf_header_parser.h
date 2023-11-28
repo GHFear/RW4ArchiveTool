@@ -14,20 +14,20 @@
 
 namespace sf
 {
-    SFArchiveHeader* parse_sfa_header(const wchar_t* archiveName);
+    SFArchiveHeaderNotDynamic parse_sfa_header(const wchar_t* archiveName);
 
     // Get SF compression type
-    SFTYPE check_sfa_compression_type(SFArchiveHeader sf_header)
+    SFTYPE check_sfa_compression_type(SFArchiveHeaderNotDynamic sf_header)
     {
-        if (dword_big_to_little_endian(sf_header.CompressionType) == 1) // CompressionType 1
+        if (dword_big_to_little_endian(sf_header.StreamFormat) == 1) // StreamFormat 1
         {
             return SFTYPE::SF1;
         }
-        else if (dword_big_to_little_endian(sf_header.CompressionType) == 2) // CompressionType 2
+        else if (dword_big_to_little_endian(sf_header.StreamFormat) == 2) // StreamFormat 2
         {
             return SFTYPE::SF2;
         }
-        else if (dword_big_to_little_endian(sf_header.CompressionType) == 3) // CompressionType 3
+        else if (dword_big_to_little_endian(sf_header.StreamFormat) == 3) // StreamFormat 3
         {
             return SFTYPE::SF3;
         }
@@ -36,12 +36,12 @@ namespace sf
     }
 
     // Function to parse the SFA Header (Doesn't decompress)
-    SFArchiveHeader* parse_sfa_header(const wchar_t* archiveName) {
+    SFArchiveHeaderNotDynamic parse_sfa_header(const wchar_t* archiveName) {
         // Declare local variables.
         FILE* archive = nullptr;
         long sfa_size = 0;
         long start_of_sfa = 0;
-        SFArchiveHeader* sfa_header = nullptr;
+        SFArchiveHeaderNotDynamic sfa_header = {};
         uint32_t size_of_sfa_header = 0;
 
         _wfopen_s(&archive, archiveName, L"rb");
@@ -65,8 +65,7 @@ namespace sf
 
         // Read SFA header.
         size_of_sfa_header = dword_big_to_little_endian(size_of_sfa_header);
-        sfa_header = (SFArchiveHeader*)malloc(sizeof(*sfa_header) + (size_of_sfa_header - 32));
-        fread(sfa_header, size_of_sfa_header, 1, archive);
+        fread(&sfa_header, sizeof(sfa_header), 1, archive);
 
         // Close the archive and free memory.
         fclose(archive);
@@ -74,13 +73,13 @@ namespace sf
         return sfa_header;
     }
 
-    std::vector<SF_Parse_Struct> sf_parser(const wchar_t* archive_name, const wchar_t* directory, bool unpack)
+    std::vector<Archive_Parse_Struct> sf_parser(const wchar_t* archive_name, const wchar_t* directory, bool unpack)
     {
         auto sf_header = parse_sfa_header(archive_name);
-        auto compression_type = check_sfa_compression_type(*sf_header);
-        std::vector<SF_Parse_Struct> parse_struct = {};
+        auto compression_type = check_sfa_compression_type(sf_header);
+        std::vector<Archive_Parse_Struct> parse_struct = {};
         parse_struct = sf::parse_sf_archive(archive_name, directory, unpack, compression_type);
-        free(sf_header); // We NEED to free this memory that was allocated in parse_sf_archive(); 
+        //free(sf_header); // We NEED to free this memory that was allocated in parse_sf_archive(); 
         return parse_struct;
     }
 }

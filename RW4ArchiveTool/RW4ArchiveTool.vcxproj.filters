@@ -46,6 +46,8 @@
     <ClInclude Include="Resources\targetver.h">
       <Filter>Resources</Filter>
     </ClInclude>
+    <ClInclude Include="Archives\Parsers\big_eb_parser.h" />
+    <ClInclude Include="Archives\Parsers\magic_parser.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\RW4ArchiveTool.ico">

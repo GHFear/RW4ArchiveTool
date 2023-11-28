@@ -12,13 +12,13 @@ namespace sf
 {
 
     // Function to unpack files from a sf archive. (Doesn't decompress)
-    std::vector<SF_Parse_Struct> parse_sf_archive(const wchar_t* archiveName, const wchar_t* directory, bool unpack, SFTYPE compression_type) {
+    std::vector<Archive_Parse_Struct> parse_sf_archive(const wchar_t* archiveName, const wchar_t* directory, bool unpack, SFTYPE compression_type) {
         // Declare local variables.
         FILE* archive = nullptr;
         long sfa_size = 0;
         long start_of_sfa = 0;
         uint32_t size_of_sfa_header = 0;
-        std::vector<SF_Parse_Struct> parse_struct_vector = {};
+        std::vector<Archive_Parse_Struct> parse_struct_vector = {};
 
         _wfopen_s(&archive, archiveName, L"rb");
         if (archive == NULL) {
@@ -52,7 +52,7 @@ namespace sf
             uint32_t streamfile_header_size = 0;
             long streamfile_startposition = 0;
             long stream_file_size = 0;
-            SF_Parse_Struct parse_struct = {};
+            Archive_Parse_Struct parse_struct = {};
 
             // Create our stream_file_header struct and read the header into it from our file.
             streamfile_startposition = ftell(archive);
@@ -64,14 +64,14 @@ namespace sf
 
             // Read SF Header.
             streamfile_header_size = dword_big_to_little_endian(streamfile_header_size);
-            StreamFileHeader* stream_file_header = (StreamFileHeader*)malloc(sizeof(*stream_file_header) + (streamfile_header_size - 20));
+            CollectionAsset* stream_file_header = (CollectionAsset*)malloc(sizeof(*stream_file_header) + (streamfile_header_size - 20));
             fread(stream_file_header, streamfile_header_size, 1, archive);
 
             // Set stream file block size
-            stream_file_size = dword_big_to_little_endian(stream_file_header->StreamFileSize);
+            stream_file_size = dword_big_to_little_endian(stream_file_header->Stride);
 
             // Set the filename
-            bytearray_to_hexstring(stream_file_header->FileID, sizeof(stream_file_header->FileID), filename);
+            bytearray_to_hexstring(stream_file_header->ID, sizeof(stream_file_header->ID), filename);
 
             // Create byte array with size of file_size
             char* stream_file_bytearray = (char*)malloc(stream_file_size);
@@ -80,6 +80,7 @@ namespace sf
                 fclose(archive);
                 free(sfa_header);
                 free(stream_file_header);
+                free(stream_file_bytearray);
                 return parse_struct_vector;
             }
 
@@ -99,13 +100,13 @@ namespace sf
                 switch (compression_type)
                 {
                 case SF1:
-                    sf_decompress_type1(stream_file_bytearray, filename, *stream_file_header, directory, dword_big_to_little_endian(stream_file_header->StreamFileHeaderSize));
+                    sf_decompress_type1(stream_file_bytearray, filename, *stream_file_header, directory, dword_big_to_little_endian(stream_file_header->Offset));
                     break;
                 case SF2:
-                    sf_decompress_type2(stream_file_bytearray, filename, directory, dword_big_to_little_endian(stream_file_header->StreamFileHeaderSize));
+                    sf_decompress_type2(stream_file_bytearray, filename, directory, dword_big_to_little_endian(stream_file_header->Offset));
                     break;
                 case SF3:
-                    sf_decompress_type3(stream_file_bytearray, filename, directory, dword_big_to_little_endian(stream_file_header->StreamFileHeaderSize));
+                    sf_decompress_type3(stream_file_bytearray, filename, directory, dword_big_to_little_endian(stream_file_header->Offset));
                     break;
                 case UNKNOWN:
                     break;

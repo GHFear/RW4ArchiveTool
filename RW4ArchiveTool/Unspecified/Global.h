@@ -9,6 +9,7 @@
 #include <string>
 #include <sstream>
 #include "Archives/Compression/refpack/refpackd.h"
+#include "../Archives/Structs/SF_Structs.h"
 
 
 // Define the ID for the list box
@@ -18,7 +19,7 @@
 #define ID_MENU_ITEM2 1004
 
 // Global variables
-TCHAR szAppName[] = TEXT("RenderWare4 Archive Tool | Version 0.0.1.1");
+TCHAR szAppName[] = TEXT("RenderWare4 Archive Tool | Version 0.0.1.5");
 HWND hwndMain;
 TCHAR szFileName[MAX_PATH] = TEXT("");
 HWND hwndListView;

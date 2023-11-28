@@ -3,7 +3,7 @@
 
 namespace sf
 {
-    void sf_decompress_type1(char* stream_file_bytearray, char* filename, StreamFileHeader streamfile_header, const wchar_t* directory, uint32_t sf_header_size)
+    void sf_decompress_type1(char* stream_file_bytearray, char* filename, CollectionAsset streamfile_header, const wchar_t* directory, uint32_t sf_header_size)
     {
         std::wstring concatenatedText = directory;
         concatenatedText += ConvertCharToWchar(filename);
@@ -34,7 +34,7 @@ namespace sf
         {
 
             // Create decompression in-buffer.
-            uint64_t decompression_in_buffer_size = dword_big_to_little_endian(streamfile_header.FileSize);
+            uint64_t decompression_in_buffer_size = dword_big_to_little_endian(streamfile_header.Size);
             char* decompression_in_buffer = (char*)malloc(decompression_in_buffer_size);
             if (decompression_in_buffer == NULL) {
                 perror("Error allocating memory");

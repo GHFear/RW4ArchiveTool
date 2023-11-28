@@ -11,6 +11,7 @@
 #include <vector>
 #include <shellapi.h>
 #include <tchar.h>
+#include <shlwapi.h>
 #include "Tools/Paths/Paths.h"
 #include "Tools/Program/ProgramHandlers.h"
 
