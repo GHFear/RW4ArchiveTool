@@ -1,17 +1,15 @@
 # RW4ArchiveTool
 *RW4 Archive parser, unpacker, decompressor and packer.* <br>
 
-<img src="https://github.com/GHFear/RW4ArchiveTool/blob/main/rw4_archive_tool_github.png" alt="GitHub Logo" style="float: left; margin-right: 20px;" width="1000" height="250">
-
 **Supports:** <br>
 -XSF (Compression Type 1, 2, 3) <br>
 -PSF (Compression Type 1, 2, 3) <br>
 -WSF (Compression Type 1, 2, 3) <br>
 -BIG ("EB" Archive) (No Decompression Yet) <br>
-
-**Working on:** <br>
 -BIG ("BIG4" Archive) <br>
 -BIG ("BIGF" Archive) <br>
+
+**Working on:** <br>
 -PSG (Arena File) <br>
 -RX2 (Arena File) <br>
 
