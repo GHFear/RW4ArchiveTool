@@ -18,7 +18,7 @@
 -Refpack <br>
 -Chunked Refpack <br>
 
-**(Compression types that I ned to add support for)** <br>
+**(Compression types that I need to add support for)** <br>
 -LZX <br>
 -ZLIB <br>
 -Chunked ZLIB <br>
