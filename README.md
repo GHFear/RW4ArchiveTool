@@ -5,7 +5,7 @@
 -XSF (Compression Type 1, 2, 3) <br>
 -PSF (Compression Type 1, 2, 3) <br>
 -WSF (Compression Type 1, 2, 3) <br>
--BIG ("EB" Archive) (No Decompression Yet) <br>
+-BIG ("EB" Archive) <br>
 -BIG ("BIG4" Archive) <br>
 -BIG ("BIGF" Archive) <br>
 
