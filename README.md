@@ -9,6 +9,11 @@
 -BIG ("BIG4" Archive) <br>
 -BIG ("BIGF" Archive) <br>
 
+**(Compression types supported)** <br>
+-None <br>
+-Refpack <br>
+-Chunked Refpack <br>
+
 **Working on:** <br>
 -PSG (Arena File) <br>
 -RX2 (Arena File) <br>
