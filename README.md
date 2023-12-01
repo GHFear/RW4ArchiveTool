@@ -9,13 +9,20 @@
 -BIG ("BIG4" Archive) <br>
 -BIG ("BIGF" Archive) <br>
 
+**Working on:** <br>
+-PSG (Arena File) <br>
+-RX2 (Arena File) <br>
+
 **(Compression types supported)** <br>
 -None <br>
 -Refpack <br>
 -Chunked Refpack <br>
 
-**Working on:** <br>
--PSG (Arena File) <br>
--RX2 (Arena File) <br>
+**(Compression types that I ned to add support for)** <br>
+-LZX <br>
+-ZLIB <br>
+-Chunked ZLIB <br>
+
+
 
 */GHFear*
