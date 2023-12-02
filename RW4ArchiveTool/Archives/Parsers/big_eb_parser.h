@@ -141,7 +141,6 @@ namespace big_eb
         // Check if nullptr
         if (file == nullptr) {
             fprintf(stderr, "Error opening file for write.\n");
-            fclose(file);
             return false;
         }
 
@@ -189,7 +188,6 @@ namespace big_eb
         // Check if nullptr
         if (file == nullptr) {
             fprintf(stderr, "Error opening file for write.\n");
-            fclose(file);
             free(file_buffer);
             return false;
         }
@@ -244,7 +242,6 @@ namespace big_eb
         // Check if nullptr
         if (file == nullptr) {
             fprintf(stderr, "Error opening file for write.\n");
-            fclose(file);
             free(file_buffer);
             return false;
         }

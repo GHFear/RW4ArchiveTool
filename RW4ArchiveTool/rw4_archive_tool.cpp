@@ -39,7 +39,6 @@ void OpenFileAndLoadBuffer(HWND hwnd) {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow) {
     MSG msg;
     WNDCLASS wndClass;
-    //AllocConsole();
 
     // Register the window class.
     wndClass.style = CS_HREDRAW | CS_VREDRAW;
@@ -251,8 +250,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 // Get the selected item text
                 int selectedItemIndex = ListView_GetNextItem(hwndListView, -1, LVNI_SELECTED);
                 if (selectedItemIndex != -1) {
-                    wchar_t Filename[256];
-                    wchar_t FileDirectory[256];
+                    wchar_t Filename[512];
+                    wchar_t FileDirectory[512];
                     ListView_GetItemText(hwndListView, selectedItemIndex, 1, Filename, sizeof(Filename) / sizeof(Filename[0]));
                     ListView_GetItemText(hwndListView, selectedItemIndex, 3, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
 
@@ -275,14 +274,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                         parsed_archive = sf::parse_sf_archive(FullPath.c_str(), FileDirectory, false);
                         break;
                     case UNKNOWNARCHIVE:
-                        goto DontUpdateListView2;
                         break;
                     default:
                         break;
                     }
-                    
+
                     UpdateFileView(hwndListView2, parsed_archive); // Update our listview on double click.
-                    DontUpdateListView2:
+
                     break;
                 }
                 break;

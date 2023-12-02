@@ -105,6 +105,9 @@ void UpdateFileView(HWND hwnd_list, std::vector<Archive_Parse_Struct> fileVector
     // Clear existing items in the ListView
     ListView_DeleteAllItems(hwnd_list);
 
+    // Set redraw to false to save many instuctions.
+    SendMessage(hwnd_list, WM_SETREDRAW, FALSE, 0);
+
     // Iterate through the vector and add each struct's information to the ListView
     LVITEM lvItem;
     memset(&lvItem, 0, sizeof(LVITEM));
@@ -141,11 +144,23 @@ void UpdateFileView(HWND hwnd_list, std::vector<Archive_Parse_Struct> fileVector
         ListView_SetItemText(hwnd_list, i, 4, const_cast<LPWSTR>(WideZtype.c_str()));
 
     }
+
+    // Set redraw to true after adding items.
+    SendMessage(hwnd_list, WM_SETREDRAW, TRUE, 0);
+    InvalidateRect(hwnd_list, NULL, TRUE);
 }
 
 // Function to update the ListView1 with Archive information
 void UpdateArchiveView(HWND hwnd, wchar_t* file)
 {
+    // Update the list view
+    HWND hListView = GetDlgItem(hwnd, ID_LIST_VIEW);
+    ListView_DeleteAllItems(hwndListView);
+    ListView_DeleteAllItems(hwndListView2);
+
+    // Set redraw to false to save many instuctions.
+    SendMessage(hwndListView, WM_SETREDRAW, FALSE, 0);
+
     // Parse the selected files and update the list view
     std::pair<std::wstring, std::vector<std::wstring>> selected_archives;
     int numSelectedFiles = CountSelectedFiles(file);
@@ -157,11 +172,6 @@ void UpdateArchiveView(HWND hwnd, wchar_t* file)
     {
         selected_archives = ParseMultiFilePath(file); // Handle multiple selection archive paths.
     }
-
-    // Update the list view
-    HWND hListView = GetDlgItem(hwnd, ID_LIST_VIEW);
-    ListView_DeleteAllItems(hwndListView);
-    ListView_DeleteAllItems(hwndListView2);
 
     // Iterate through the vector and add each struct's information to the ListView
     LVITEM lvItem;
@@ -184,9 +194,6 @@ void UpdateArchiveView(HWND hwnd, wchar_t* file)
         // Archive index
         wchar_t archive_index_wchar[20];
         int_to_wchar(i, archive_index_wchar, 20);
-
-        wchar_t Filename[256];
-        wchar_t FileDirectory[256];
 
         // Create file path wstring.
         std::wstring FullPath = selected_archives.first.c_str();
@@ -234,6 +241,9 @@ void UpdateArchiveView(HWND hwnd, wchar_t* file)
             break;
         }
     }
+    // Set redraw to true after adding items.
+    SendMessage(hwndListView, WM_SETREDRAW, TRUE, 0);
+    InvalidateRect(hwndListView, NULL, TRUE);
 }
 
 bool IsDirectoryPath(const std::wstring& path) {
@@ -264,6 +274,13 @@ LRESULT CALLBACK SubclassListViewProc(HWND hwnd, UINT message, WPARAM wParam, LP
     {
     case WM_DROPFILES:
     {
+        // Delete old listview items.
+        ListView_DeleteAllItems(hwndListView);
+        ListView_DeleteAllItems(hwndListView2);
+
+        // Set redraw to false to save many instuctions.
+        SendMessage(hwndListView, WM_SETREDRAW, FALSE, 0);
+
         HDROP hDrop = (HDROP)wParam;
 
         // Determine the number of files dropped
@@ -326,9 +343,7 @@ LRESULT CALLBACK SubclassListViewProc(HWND hwnd, UINT message, WPARAM wParam, LP
             }
         }
 
-        ListView_DeleteAllItems(hwndListView);
-        ListView_DeleteAllItems(hwndListView2);
-
+        
         // Display the filenames and directories
         for (size_t i = 0; i < filenames.size(); ++i)
         {
@@ -351,9 +366,6 @@ LRESULT CALLBACK SubclassListViewProc(HWND hwnd, UINT message, WPARAM wParam, LP
             // Archive index
             wchar_t archive_index_wchar[20];
             int_to_wchar(i, archive_index_wchar, 20);
-
-            wchar_t Filename[256];
-            wchar_t FileDirectory[256];
 
             // Create file path wstring.
             std::wstring FullPath = directories[i].c_str();
@@ -395,13 +407,15 @@ LRESULT CALLBACK SubclassListViewProc(HWND hwnd, UINT message, WPARAM wParam, LP
                 ListView_SetItemText(hwndListView, i, 6, const_cast<LPWSTR>(archive_NumCollections_wchar));
                 break;
             case UNKNOWNARCHIVE:
-                continue;
                 break;
             default:
                 break;
             } 
         }
         
+        // Set redraw to true after adding items.
+        SendMessage(hwndListView, WM_SETREDRAW, TRUE, 0);
+        InvalidateRect(hwndListView, NULL, TRUE);
         DragFinish(hDrop);
         return 0;
     }

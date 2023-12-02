@@ -1,4 +1,5 @@
 #pragma once
+#include "Unspecified/FuncTimer.h"
 #include "Resources/resource.h"
 #include <Windows.h>
 #include <stdio.h>

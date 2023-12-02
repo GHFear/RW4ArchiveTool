@@ -50,6 +50,7 @@
     <ClInclude Include="Archives\Parsers\magic_parser.h">
       <Filter>Headers\Archives\Parsers</Filter>
     </ClInclude>
+    <ClInclude Include="Unspecified\FuncTimer.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\RW4ArchiveTool.ico">

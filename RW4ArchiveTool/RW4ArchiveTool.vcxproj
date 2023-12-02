@@ -154,6 +154,7 @@
     <ClInclude Include="Archives\Parsers\sf_parser.h" />
     <ClInclude Include="Tools\Paths\Paths.h" />
     <ClInclude Include="Tools\Program\ProgramHandlers.h" />
+    <ClInclude Include="Unspecified\FuncTimer.h" />
     <ClInclude Include="Unspecified\Global.h" />
   </ItemGroup>
   <ItemGroup>
