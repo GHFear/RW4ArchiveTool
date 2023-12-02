@@ -47,7 +47,7 @@ enum SFTYPE {
 
 // Add the information you want to parse from the SF into this file. (it's up to you what that is.)
 struct Archive_Parse_Struct {
-    char filename[256];
+    std::string filename;
     UINT32 file_size;
     UINT32 file_offset;
     char ztype[256];

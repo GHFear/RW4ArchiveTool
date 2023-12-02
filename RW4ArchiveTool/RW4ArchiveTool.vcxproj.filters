@@ -40,10 +40,16 @@
     <ClInclude Include="Resources\targetver.h">
       <Filter>Resources</Filter>
     </ClInclude>
-    <ClInclude Include="Archives\Parsers\big_eb_parser.h" />
-    <ClInclude Include="Archives\Parsers\magic_parser.h" />
-    <ClInclude Include="Archives\Parsers\big4_parser.h" />
     <ClInclude Include="Unspecified\Global.h" />
+    <ClInclude Include="Archives\Parsers\big_eb_parser.h">
+      <Filter>Headers\Archives\Parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Parsers\big4_parser.h">
+      <Filter>Headers\Archives\Parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Parsers\magic_parser.h">
+      <Filter>Headers\Archives\Parsers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\RW4ArchiveTool.ico">

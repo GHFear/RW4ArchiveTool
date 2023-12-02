@@ -190,7 +190,7 @@ namespace big4
             fseek(archive, dword_big_to_little_endian(big4_fat.offset), SEEK_SET);
 
             // Set Parsed_Archive struct members.
-            memcpy(Parsed_Archive_Struct.filename, big_file_path.c_str(), filename_length);
+            Parsed_Archive_Struct.filename = big_file_path;
             Parsed_Archive_Struct.file_size = dword_big_to_little_endian(big4_fat.size);
             Parsed_Archive_Struct.file_offset = dword_big_to_little_endian(big4_fat.offset);
             if (word_big_to_little_endian(compression_type) == 0x10FB)

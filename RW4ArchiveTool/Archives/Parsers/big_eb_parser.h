@@ -105,7 +105,7 @@ namespace big_eb
              std::vector<uint8_t> decompression_in_buffer_vector(file_buffer, file_buffer + dword_big_to_little_endian(block_header.chunkSizeCompressed));
 
              // Check if the chunk is compressed.
-             if (dword_big_to_little_endian(block_header.compressionType) == 2) // Chunk is compressed
+             if (dword_big_to_little_endian(block_header.compressionType) == 2) // Chunk is compressed with refpack.
              {
                  std::vector<uint8_t> chunk_decompression_out_buffer_vector = refpack::decompress(decompression_in_buffer_vector);
                  decompressed_size += chunk_decompression_out_buffer_vector.size();
@@ -114,6 +114,10 @@ namespace big_eb
              else if (dword_big_to_little_endian(block_header.compressionType) == 4) // Chunk is not compressed
              {
                  decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), decompression_in_buffer_vector.begin(), decompression_in_buffer_vector.end());
+             }
+             else if (dword_big_to_little_endian(block_header.compressionType) == 1) // Chunk is compressed with zlib.
+             {
+                 //decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), decompression_in_buffer_vector.begin(), decompression_in_buffer_vector.end());
              }
              
              free(file_buffer);
@@ -329,7 +333,7 @@ namespace big_eb
         {
             BYTE compression_type = 0;
 
-            // Read compression type.
+            // Read compression type. (This doesn't exist on all versions of EB V3 and you may need to figure this out some other way.)
             fread(&compression_type, sizeof(compression_type), 1, archive);
 
             // Push type into vector.
@@ -357,6 +361,7 @@ namespace big_eb
             // Read and build directory. (Stage 1: Filename) 
             fread(name_buffer.data(), archive_header.FILENAME_LENGTH, 1, archive);
             std::string name(name_buffer.begin(), std::find(name_buffer.begin(), name_buffer.end(), '\0'));
+
             std::string filename = name;
 
             DWORD next_name_offset = ftell(archive); // Save the current location as next name offset location.
@@ -382,7 +387,7 @@ namespace big_eb
             out_filepath += ConvertCharToWchar(final_extracted_filepath.c_str());
 
             // Set Parsed_Archive struct members.
-            memcpy(Parsed_Archive_Struct.filename, filename.c_str(), sizeof(filename));
+            Parsed_Archive_Struct.filename = filename;
             Parsed_Archive_Struct.file_size = size;
             Parsed_Archive_Struct.file_offset = offset;
             if (compression_type == 0)

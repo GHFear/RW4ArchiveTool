@@ -1,7 +1,29 @@
 #pragma once
 #include "../../Unspecified/Global.h"
+#include <codecvt>
+#include <locale>
 
 void UpdateWindowTitle(const std::wstring& fileName);
+
+std::wstring to_wstring(const std::string stringToConvert)
+{
+    // Calculate the required buffer size
+    int wideStringLength = MultiByteToWideChar(CP_UTF8, 0, stringToConvert.c_str(), -1, nullptr, 0);
+
+    // Allocate a buffer for the wide string
+    wchar_t* wideStringBuffer = new wchar_t[wideStringLength];
+
+    // Convert the string
+    MultiByteToWideChar(CP_UTF8, 0, stringToConvert.c_str(), -1, wideStringBuffer, wideStringLength);
+
+    // Create std::wstring from the buffer
+    std::wstring wideString(wideStringBuffer);
+
+    // Cleanup
+    delete[] wideStringBuffer;
+
+    return wideString;
+}
 
 
 void int_to_wchar(uint32_t input_int, wchar_t* wchar_reference, size_t bufferSize)
@@ -95,9 +117,7 @@ void UpdateFileView(HWND hwnd_list, std::vector<Archive_Parse_Struct> fileVector
         lvItem.pszText = LPSTR_TEXTCALLBACK;
         ListView_InsertItem(hwnd_list, &lvItem);
 
-        int wideCharBufferSize = MultiByteToWideChar(CP_UTF8, 0, fileVector[i].filename, -1, NULL, 0);
-        wchar_t* wideCharFilename = new wchar_t[wideCharBufferSize];
-        ConvertCharToWideChar(fileVector[i].filename, wideCharFilename, wideCharBufferSize);
+        std::wstring WideFileName = to_wstring(fileVector[i].filename);
 
         // File size
         wchar_t file_size[20];
@@ -111,18 +131,15 @@ void UpdateFileView(HWND hwnd_list, std::vector<Archive_Parse_Struct> fileVector
         wchar_t file_offset[20];
         int_to_wchar(fileVector[i].file_offset, file_offset, 20);
 
-        wideCharBufferSize = MultiByteToWideChar(CP_UTF8, 0, fileVector[i].ztype, -1, NULL, 0);
-        wchar_t* wideCharZType = new wchar_t[wideCharBufferSize];
-        ConvertCharToWideChar(fileVector[i].ztype, wideCharZType, wideCharBufferSize);
+        std::wstring WideZtype = to_wstring(fileVector[i].ztype);
 
         // Add other columns
         ListView_SetItemText(hwnd_list, i, 0, const_cast<LPWSTR>(file_index));
-        ListView_SetItemText(hwnd_list, i, 1, const_cast<LPWSTR>(wideCharFilename));
+        ListView_SetItemText(hwnd_list, i, 1, const_cast<LPWSTR>(WideFileName.c_str()));
         ListView_SetItemText(hwnd_list, i, 2, const_cast<LPWSTR>(file_size));
         ListView_SetItemText(hwnd_list, i, 3, const_cast<LPWSTR>(file_offset));
-        ListView_SetItemText(hwnd_list, i, 4, const_cast<LPWSTR>(wideCharZType));
+        ListView_SetItemText(hwnd_list, i, 4, const_cast<LPWSTR>(WideZtype.c_str()));
 
-        delete[] wideCharFilename; //Delete buffer
     }
 }
 

@@ -86,7 +86,7 @@ namespace sf
             fread(stream_file_bytearray, sizeof(char), stream_file_size, archive);
 
             // Add to parse struct vector
-            memcpy(parse_struct.filename, filename, sizeof(filename));
+            parse_struct.filename = filename;
             parse_struct.file_size = stream_file_size;
             parse_struct.file_offset = streamfile_startposition;
             parse_struct_vector.push_back(parse_struct);
