@@ -1,4 +1,4 @@
-# RW4ArchiveTool
+# RW4ArchiveTool 0.0.4.0
 *RW4 Archive parser, unpacker, decompressor and (packer coming soon).* <br>
 
 **Supports:** <br>
