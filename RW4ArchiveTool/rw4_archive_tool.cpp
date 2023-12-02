@@ -6,10 +6,12 @@
 #include "Archives/Parsers/big_eb_parser.h"
 #include "Archives/Parsers/big4_parser.h"
 #include "Tools/Program/ProgramHandlers.h"
+#include "Windows/FindWindow.h"
 
 
 // Function prototypes
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+
 
 // Function to open a file dialog and load the file into the buffer
 void OpenFileAndLoadBuffer(HWND hwnd) {
@@ -87,11 +89,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         icex.dwICC = ICC_LISTVIEW_CLASSES;
         InitCommonControlsEx(&icex);
 
-        // Create a menu
+        // Create Menu
         HMENU hMenu = CreateMenu();
         HMENU hSubMenu = CreateMenu();
         AppendMenu(hSubMenu, MF_STRING, ID_FILE_OPEN, TEXT("Open"));
         AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu, TEXT("File"));
+
+        HMENU hSubMenu2 = CreateMenu();
+        AppendMenu(hSubMenu2, MF_STRING, ID_FIND_IN_FILES, TEXT("Find In Files"));
+        AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu2, TEXT("Find"));
 
         // Assign the menu to the window
         SetMenu(hwnd, hMenu);
@@ -105,49 +111,43 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         ListView_SetExtendedListViewStyle(hwndListView, LVS_EX_DOUBLEBUFFER | LVS_EX_FULLROWSELECT);
 
         // Set up columns in the ListView
-        LVCOLUMN lvc1;
-
-        lvc1.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
-        lvc1.cx = 50; // Width of the column
-        lvc1.pszText = (LPWSTR)L"Index";
-        lvc1.iSubItem = 0;
-        ListView_InsertColumn(hwndListView, 0, &lvc1);
+        LVCOLUMN lvc1 = {};
 
         lvc1.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
         lvc1.cx = 150; // Width of the column
         lvc1.pszText = (LPWSTR)L"Archive";
-        lvc1.iSubItem = 1;
-        ListView_InsertColumn(hwndListView, 1, &lvc1);
+        lvc1.iSubItem = 0;
+        ListView_InsertColumn(hwndListView, 0, &lvc1);
 
         lvc1.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
         lvc1.cx = 75; // Width of the column
         lvc1.pszText = (LPWSTR)L"Size";
+        lvc1.iSubItem = 1;
+        ListView_InsertColumn(hwndListView, 1, &lvc1);
+
+        lvc1.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+        lvc1.cx = 50; // Width of the column
+        lvc1.pszText = (LPWSTR)L"Path";
         lvc1.iSubItem = 2;
         ListView_InsertColumn(hwndListView, 2, &lvc1);
 
         lvc1.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
         lvc1.cx = 50; // Width of the column
-        lvc1.pszText = (LPWSTR)L"Path";
+        lvc1.pszText = (LPWSTR)L"Format";
         lvc1.iSubItem = 3;
         ListView_InsertColumn(hwndListView, 3, &lvc1);
 
         lvc1.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
         lvc1.cx = 50; // Width of the column
-        lvc1.pszText = (LPWSTR)L"Format";
+        lvc1.pszText = (LPWSTR)L"Ver.";
         lvc1.iSubItem = 4;
         ListView_InsertColumn(hwndListView, 4, &lvc1);
 
         lvc1.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
         lvc1.cx = 50; // Width of the column
-        lvc1.pszText = (LPWSTR)L"Ver.";
+        lvc1.pszText = (LPWSTR)L"Collections";
         lvc1.iSubItem = 5;
         ListView_InsertColumn(hwndListView, 5, &lvc1);
-
-        lvc1.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
-        lvc1.cx = 50; // Width of the column
-        lvc1.pszText = (LPWSTR)L"Collections";
-        lvc1.iSubItem = 6;
-        ListView_InsertColumn(hwndListView, 6, &lvc1);
 
         // Enable drag-and-drop
         DragAcceptFiles(hwndListView, TRUE);
@@ -164,7 +164,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         ListView_SetExtendedListViewStyle(hwndListView2, LVS_EX_DOUBLEBUFFER | LVS_EX_FULLROWSELECT);
 
         // Set up columns in the ListView
-        LVCOLUMN lvc2;
+        LVCOLUMN lvc2 = {};
         lvc2.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
         lvc2.cx = 50; // Width of the column
         lvc2.pszText = (LPWSTR)L"Index";
@@ -198,13 +198,31 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         // Subclass the second ListView control
         SubclassListView(hwndListView2);
 
+        // Create a ListView to display file information
+        hwndListView3 = CreateWindow(WC_LISTVIEW, NULL,
+            WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL,
+            0, 0, 0, 0, hwnd, (HMENU)ID_LIST_VIEW, GetModuleHandle(NULL), NULL);
+
+        // Set the extended style
+        ListView_SetExtendedListViewStyle(hwndListView3, LVS_EX_DOUBLEBUFFER | LVS_EX_FULLROWSELECT);
+
+        // Set up columns in the ListView
+        LVCOLUMN lvc3 = {};
+
+        lvc3.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+        lvc3.cx = 150; // Width of the column
+        lvc3.pszText = (LPWSTR)L"Information";
+        lvc3.iSubItem = 0;
+        ListView_InsertColumn(hwndListView3, 0, &lvc3);
+
         // Create context menu and set the member menu items
-        hContextMenu = CreatePopupMenu();
-        AppendMenu(hContextMenu, MF_STRING, ID_MENU_ITEM1, L"Unpack");
-        AppendMenu(hContextMenu, MF_STRING, ID_MENU_ITEM2, L"Open Directory");
-        HMENU hListViewMenu = GetMenu(hwnd);
-        SetMenu(hwnd, NULL);
-        SetMenu(hwnd, hListViewMenu);
+        hContextMenuArchives = CreatePopupMenu();
+        AppendMenu(hContextMenuArchives, MF_STRING, ID_ARCHIVEMENU_ITEM1, L"Unpack");
+        AppendMenu(hContextMenuArchives, MF_STRING, ID_ARCHIVEMENU_ITEM2, L"Open Directory");
+
+        // Create context menu and set the member menu items
+        hContextMenuFiles = CreatePopupMenu();
+        AppendMenu(hContextMenuFiles, MF_STRING, ID_FILEMENU_ITEM1, L"Unpack File");
 
         break;
     } 
@@ -216,7 +234,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         int left_listview = ((windowWidth) / 2);
         int remainder = windowWidth - left_listview;
         MoveWindow(hwndListView, 5, 0, left_listview - 10, windowHeight, TRUE);
-        MoveWindow(hwndListView2, left_listview - 5, 0, remainder, windowHeight, TRUE);
+        MoveWindow(hwndListView2, left_listview - 5, 0, remainder, (windowHeight / 3) * 2, TRUE);
+        MoveWindow(hwndListView3, left_listview - 5, (windowHeight / 3) * 2, remainder, (windowHeight / 3), TRUE);
         break;
     }
     case WM_NOTIFY:
@@ -238,7 +257,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     GetCursorPos(&cursor);
 
                     // Track the context menu
-                    TrackPopupMenu(hContextMenu, TPM_LEFTALIGN | TPM_TOPALIGN, cursor.x, cursor.y, 0, hwnd, NULL);
+                    TrackPopupMenu(hContextMenuArchives, TPM_LEFTALIGN | TPM_TOPALIGN, cursor.x, cursor.y, 0, hwnd, NULL);
 
                 }
                 break;
@@ -252,15 +271,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 if (selectedItemIndex != -1) {
                     wchar_t Filename[512];
                     wchar_t FileDirectory[512];
-                    ListView_GetItemText(hwndListView, selectedItemIndex, 1, Filename, sizeof(Filename) / sizeof(Filename[0]));
-                    ListView_GetItemText(hwndListView, selectedItemIndex, 3, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
+                    ListView_GetItemText(hwndListView, selectedItemIndex, 0, Filename, sizeof(Filename) / sizeof(Filename[0]));
+                    ListView_GetItemText(hwndListView, selectedItemIndex, 2, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
 
                     // Create file path wstring.
                     std::wstring FullPath = FileDirectory;
                     FullPath += Filename;
 
                     // Parse Archive
-                    std::vector<Archive_Parse_Struct> parsed_archive = {};
+                    
 
                     switch (magic::magic_parser(FullPath.c_str()))
                     {
@@ -287,22 +306,51 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
             }
 
         }
+        else if (pnmh->idFrom == ID_LIST_VIEW2)
+        {
+            switch (pnmh->code)
+            {
+            case NM_RCLICK:
+            {
+                // Handle right-click or left-click
+                LPNMITEMACTIVATE lpnmitem = (LPNMITEMACTIVATE)lParam;
+                int selectedItem = lpnmitem->iItem;
+                if (selectedItem != -1)
+                {
+                    // Get the cursor position
+                    POINT cursor;
+                    GetCursorPos(&cursor);
+
+                    // Track the context menu
+                    TrackPopupMenu(hContextMenuFiles, TPM_LEFTALIGN | TPM_TOPALIGN, cursor.x, cursor.y, 0, hwnd, NULL);
+                }
+                break;
+            }
+            case NM_DBLCLK:
+                break; 
+            }
+
+        }
         break;
     }
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
+        case ID_FIND_IN_FILES:
+            CreateFindInFilesWindow();
+            //MessageBox(hwnd, L"This feature hasn't been implemented just yet ;)", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+            break;
         case ID_FILE_OPEN:
             OpenFileAndLoadBuffer(hwnd);
             break;
-        case ID_MENU_ITEM1:
+        case ID_ARCHIVEMENU_ITEM1:
         {
             // Get the selected item text
             int selectedItemIndex = ListView_GetNextItem(hwndListView, -1, LVNI_SELECTED);
             if (selectedItemIndex != -1) {
                 wchar_t Filename[256];
                 wchar_t FileDirectory[256];
-                ListView_GetItemText(hwndListView, selectedItemIndex, 1, Filename, sizeof(Filename) / sizeof(Filename[0]));
-                ListView_GetItemText(hwndListView, selectedItemIndex, 3, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
+                ListView_GetItemText(hwndListView, selectedItemIndex, 0, Filename, sizeof(Filename) / sizeof(Filename[0]));
+                ListView_GetItemText(hwndListView, selectedItemIndex, 2, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
 
                 // Create file path wstring.
                 std::wstring FullPath = FileDirectory;
@@ -324,7 +372,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     MessageBox(hwnd, L"Archive was unpacked successfully!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
                     break;
                 case UNKNOWNARCHIVE:
-                    MessageBox(hwnd, L"Archive is of unknown typr!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    MessageBox(hwnd, L"Archive is of unknown type!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
                     break;
                 default:
                     break;
@@ -332,18 +380,21 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
             }
             break;
         }
-        case ID_MENU_ITEM2:
+        case ID_ARCHIVEMENU_ITEM2:
         {
             // Get the selected item text
             int selectedItemIndex = ListView_GetNextItem(hwndListView, -1, LVNI_SELECTED);
             if (selectedItemIndex != -1) {
                 wchar_t FileDirectory[256];
-                ListView_GetItemText(hwndListView, selectedItemIndex, 3, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
+                ListView_GetItemText(hwndListView, selectedItemIndex, 2, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
 
                 ShellExecute(NULL, L"open", L"explorer.exe", FileDirectory, NULL, SW_SHOWNORMAL);
             }
             break;
         }
+        case ID_FILEMENU_ITEM1:
+            MessageBox(hwnd, L"This feature hasn't been implemented just yet ;)", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+            break;
         }
         break;
     case WM_DESTROY:

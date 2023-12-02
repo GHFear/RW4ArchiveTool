@@ -156,6 +156,7 @@
     <ClInclude Include="Tools\Program\ProgramHandlers.h" />
     <ClInclude Include="Unspecified\FuncTimer.h" />
     <ClInclude Include="Unspecified\Global.h" />
+    <ClInclude Include="Windows\FindWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="rw4_archive_tool.cpp" />

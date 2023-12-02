@@ -51,6 +51,7 @@
       <Filter>Headers\Archives\Parsers</Filter>
     </ClInclude>
     <ClInclude Include="Unspecified\FuncTimer.h" />
+    <ClInclude Include="Windows\FindWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\RW4ArchiveTool.ico">

@@ -19,11 +19,18 @@
 #define ID_FILE_OPEN                    32773
 #define IDC_STATIC                      -1
 
-// Define the ID for the list box
+// User Identifiers for controls
 #define ID_LIST_VIEW 1001
 #define ID_LIST_VIEW2 1002
-#define ID_MENU_ITEM1 1003
-#define ID_MENU_ITEM2 1004
+#define IDC_SEARCH_EDIT 2001
+#define IDC_SEARCH_BUTTON 2002
+#define ID_ARCHIVEMENU_ITEM1 10003
+#define ID_ARCHIVEMENU_ITEM2 10004
+#define ID_FILEMENU_ITEM1 10005
+#define ID_Menu2 32774
+#define ID_SEARCH 32775
+#define ID_FIND_IN_FILES 32776
+#define ID_SEARCH_OFFSET 32777
 
 // Next default values for new objects
 // 

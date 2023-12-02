@@ -113,6 +113,8 @@ void UpdateFileView(HWND hwnd_list, std::vector<Archive_Parse_Struct> fileVector
     memset(&lvItem, 0, sizeof(LVITEM));
     lvItem.mask = LVIF_TEXT;
 
+    // Set the total number of items beforehand
+    SendMessage(hwnd_list, LVM_SETITEMCOUNT, fileVector.size(), 0);
     for (size_t i = 0; i < fileVector.size(); ++i) {
         // Add the index to the first column
         lvItem.iItem = i;
@@ -121,28 +123,17 @@ void UpdateFileView(HWND hwnd_list, std::vector<Archive_Parse_Struct> fileVector
         ListView_InsertItem(hwnd_list, &lvItem);
 
         std::wstring WideFileName = to_wstring(fileVector[i].filename);
-
-        // File size
-        wchar_t file_size[20];
-        int_to_wchar(fileVector[i].file_size, file_size, 20);
-
-        // File index
-        wchar_t file_index[20];
-        int_to_wchar(i, file_index, 20);
-
-        // File offset
-        wchar_t file_offset[20];
-        int_to_wchar(fileVector[i].file_offset, file_offset, 20);
-
+        std::wstring file_size = std::to_wstring(fileVector[i].file_size);
+        std::wstring file_index = std::to_wstring(i);
+        std::wstring file_offset = std::to_wstring(fileVector[i].file_offset);
         std::wstring WideZtype = to_wstring(fileVector[i].ztype);
 
         // Add other columns
-        ListView_SetItemText(hwnd_list, i, 0, const_cast<LPWSTR>(file_index));
+        ListView_SetItemText(hwnd_list, i, 0, const_cast<LPWSTR>(file_index.c_str()));
         ListView_SetItemText(hwnd_list, i, 1, const_cast<LPWSTR>(WideFileName.c_str()));
-        ListView_SetItemText(hwnd_list, i, 2, const_cast<LPWSTR>(file_size));
-        ListView_SetItemText(hwnd_list, i, 3, const_cast<LPWSTR>(file_offset));
+        ListView_SetItemText(hwnd_list, i, 2, const_cast<LPWSTR>(file_size.c_str()));
+        ListView_SetItemText(hwnd_list, i, 3, const_cast<LPWSTR>(file_offset.c_str()));
         ListView_SetItemText(hwnd_list, i, 4, const_cast<LPWSTR>(WideZtype.c_str()));
-
     }
 
     // Set redraw to true after adding items.
@@ -186,54 +177,39 @@ void UpdateArchiveView(HWND hwnd, wchar_t* file)
         lvItem.pszText = LPSTR_TEXTCALLBACK;
         ListView_InsertItem(hwndListView, &lvItem);
 
-        // Archive size
-        DWORD archive_size = GetFileSizeFromOpenFileName(hwnd, selected_archives.first, selected_archives.second[i]);
-        wchar_t archive_size_wchar[20];
-        int_to_wchar(archive_size, archive_size_wchar, 20);
-
-        // Archive index
-        wchar_t archive_index_wchar[20];
-        int_to_wchar(i, archive_index_wchar, 20);
-
         // Create file path wstring.
         std::wstring FullPath = selected_archives.first.c_str();
         FullPath += selected_archives.second[i].c_str();
 
-        SFArchiveHeaderNotDynamic parsed_sf_header = {};
-        // Archive streamformat
-        wchar_t archive_streamformat_wchar[20];
-        // Archive version
-        wchar_t archive_Version_wchar[20];
-        // Archive numcollections
-        wchar_t archive_NumCollections_wchar[20];
+        // Get information
+        std::wstring archive_size = std::to_wstring(GetFileSizeFromOpenFileName(hwnd, selected_archives.first, selected_archives.second[i]));
 
         switch (magic::magic_parser(FullPath.c_str()))
         {
         case BIG_EB:
-            ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(archive_index_wchar));
-            ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(selected_archives.second[i].c_str()));
-            ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(archive_size_wchar));
-            ListView_SetItemText(hwndListView, i, 3, const_cast<LPWSTR>(selected_archives.first.c_str()));
+            ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(selected_archives.second[i].c_str()));
+            ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(archive_size.c_str()));
+            ListView_SetItemText(hwndListView, i, 2 , const_cast<LPWSTR>(selected_archives.first.c_str()));
             break;
         case BIG4:
-            ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(archive_index_wchar));
-            ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(selected_archives.second[i].c_str()));
-            ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(archive_size_wchar));
-            ListView_SetItemText(hwndListView, i, 3, const_cast<LPWSTR>(selected_archives.first.c_str()));
+            ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(selected_archives.second[i].c_str()));
+            ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(archive_size.c_str()));
+            ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(selected_archives.first.c_str()));
             break;
         case SFIL:
-            parsed_sf_header = sf::parse_sfa_header(FullPath.c_str());
-            int_to_wchar(dword_big_to_little_endian(parsed_sf_header.StreamFormat), archive_streamformat_wchar, 20);
-            int_to_wchar(dword_big_to_little_endian(parsed_sf_header.Version), archive_Version_wchar, 20);
-            int_to_wchar(dword_big_to_little_endian(parsed_sf_header.NumCollections), archive_NumCollections_wchar, 20);
-            ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(archive_index_wchar));
-            ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(selected_archives.second[i].c_str()));
-            ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(archive_size_wchar));
-            ListView_SetItemText(hwndListView, i, 3, const_cast<LPWSTR>(selected_archives.first.c_str()));
-            ListView_SetItemText(hwndListView, i, 4, const_cast<LPWSTR>(archive_streamformat_wchar));
-            ListView_SetItemText(hwndListView, i, 5, const_cast<LPWSTR>(archive_Version_wchar));
-            ListView_SetItemText(hwndListView, i, 6, const_cast<LPWSTR>(archive_NumCollections_wchar));
+        {
+            SFArchiveHeaderNotDynamic parsed_sf_header = sf::parse_sfa_header(FullPath.c_str());
+            std::wstring archive_streamformat = std::to_wstring(dword_big_to_little_endian(parsed_sf_header.StreamFormat));
+            std::wstring archive_Version = std::to_wstring(dword_big_to_little_endian(parsed_sf_header.Version));
+            std::wstring archive_NumCollections = std::to_wstring(dword_big_to_little_endian(parsed_sf_header.NumCollections));
+            ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(selected_archives.second[i].c_str()));
+            ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(archive_size.c_str()));
+            ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(selected_archives.first.c_str()));
+            ListView_SetItemText(hwndListView, i, 3, const_cast<LPWSTR>(archive_streamformat.c_str()));
+            ListView_SetItemText(hwndListView, i, 4, const_cast<LPWSTR>(archive_Version.c_str()));
+            ListView_SetItemText(hwndListView, i, 5, const_cast<LPWSTR>(archive_NumCollections.c_str()));
             break;
+        }
         case UNKNOWNARCHIVE:
             continue;
             break;
@@ -358,59 +334,45 @@ LRESULT CALLBACK SubclassListViewProc(HWND hwnd, UINT message, WPARAM wParam, LP
             lvItem.pszText = LPSTR_TEXTCALLBACK;
             ListView_InsertItem(hwndListView, &lvItem);
 
-            // Archive size
-            DWORD archive_size = GetFileSizeFromOpenFileName(hwnd, directories[i].c_str(), filenames[i].c_str());
-            wchar_t archive_size_wchar[20];
-            int_to_wchar(archive_size, archive_size_wchar, 20);
-
-            // Archive index
-            wchar_t archive_index_wchar[20];
-            int_to_wchar(i, archive_index_wchar, 20);
-
             // Create file path wstring.
             std::wstring FullPath = directories[i].c_str();
             FullPath += filenames[i].c_str();
 
-            SFArchiveHeaderNotDynamic parsed_sf_header = {};
-            // Archive streamformat
-            wchar_t archive_streamformat_wchar[20];
-            // Archive version
-            wchar_t archive_Version_wchar[20];
-            // Archive numcollections
-            wchar_t archive_NumCollections_wchar[20];
+            // Get information
+            std::wstring archive_size = std::to_wstring(GetFileSizeFromOpenFileName(hwnd, directories[i].c_str(), filenames[i].c_str()));
 
             switch (magic::magic_parser(FullPath.c_str()))
             {
             case BIG_EB:
-                ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(archive_index_wchar));
-                ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(filenames[i].c_str()));
-                ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(archive_size_wchar));
-                ListView_SetItemText(hwndListView, i, 3, const_cast<LPWSTR>(directories[i].c_str()));
+                ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(filenames[i].c_str()));
+                ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(archive_size.c_str()));
+                ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(directories[i].c_str()));
                 break;
             case BIG4:
-                ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(archive_index_wchar));
-                ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(filenames[i].c_str()));
-                ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(archive_size_wchar));
-                ListView_SetItemText(hwndListView, i, 3, const_cast<LPWSTR>(directories[i].c_str()));
+                ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(filenames[i].c_str()));
+                ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(archive_size.c_str()));
+                ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(directories[i].c_str()));
                 break;
             case SFIL:
-                parsed_sf_header = sf::parse_sfa_header(FullPath.c_str());
-                int_to_wchar(dword_big_to_little_endian(parsed_sf_header.StreamFormat), archive_streamformat_wchar, 20);
-                int_to_wchar(dword_big_to_little_endian(parsed_sf_header.Version), archive_Version_wchar, 20);
-                int_to_wchar(dword_big_to_little_endian(parsed_sf_header.NumCollections), archive_NumCollections_wchar, 20);
-                ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(archive_index_wchar));
-                ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(filenames[i].c_str()));
-                ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(archive_size_wchar));
-                ListView_SetItemText(hwndListView, i, 3, const_cast<LPWSTR>(directories[i].c_str()));
-                ListView_SetItemText(hwndListView, i, 4, const_cast<LPWSTR>(archive_streamformat_wchar));
-                ListView_SetItemText(hwndListView, i, 5, const_cast<LPWSTR>(archive_Version_wchar));
-                ListView_SetItemText(hwndListView, i, 6, const_cast<LPWSTR>(archive_NumCollections_wchar));
+            {
+                SFArchiveHeaderNotDynamic parsed_sf_header = sf::parse_sfa_header(FullPath.c_str());
+                std::wstring archive_streamformat = std::to_wstring(dword_big_to_little_endian(parsed_sf_header.StreamFormat));
+                std::wstring archive_Version = std::to_wstring(dword_big_to_little_endian(parsed_sf_header.Version));
+                std::wstring archive_NumCollections = std::to_wstring(dword_big_to_little_endian(parsed_sf_header.NumCollections));
+                ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(filenames[i].c_str()));
+                ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(archive_size.c_str()));
+                ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(directories[i].c_str()));
+                ListView_SetItemText(hwndListView, i, 3, const_cast<LPWSTR>(archive_streamformat.c_str()));
+                ListView_SetItemText(hwndListView, i, 4, const_cast<LPWSTR>(archive_Version.c_str()));
+                ListView_SetItemText(hwndListView, i, 5, const_cast<LPWSTR>(archive_NumCollections.c_str()));
                 break;
+            }
             case UNKNOWNARCHIVE:
+                continue;
                 break;
             default:
                 break;
-            } 
+            }
         }
         
         // Set redraw to true after adding items.
