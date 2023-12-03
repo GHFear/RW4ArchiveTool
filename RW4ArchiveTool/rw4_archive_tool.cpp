@@ -12,35 +12,10 @@
 // Function prototypes
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
-
-// Function to open a file dialog and load the file into the buffer
-void OpenFileAndLoadBuffer(HWND hwnd) {
-    OPENFILENAME ofn = { sizeof ofn };
-    wchar_t file[10240];
-    file[0] = '\0';
-    ZeroMemory(&ofn, sizeof(ofn));
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = hwnd;
-    ofn.lpstrFile = file;
-    ofn.nMaxFile = 10240;
-    ofn.lpstrFilter = TEXT("EA Skate Archives\0*.xsf;*.psf;*.wsf;*.big\0All Files\0*.*\0\0");
-    ofn.nFilterIndex = 1;
-    ofn.lpstrFileTitle = NULL;
-    ofn.nMaxFileTitle = 0;
-    ofn.lpstrInitialDir = NULL;
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT | OFN_EXPLORER;
-
-    // Display the Open dialog box.
-    if (GetOpenFileName(&ofn) == TRUE) 
-    {
-        UpdateArchiveView(hwnd, file);
-    }
-}
-
 // Entry point of the program
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine, int iCmdShow) {
     MSG msg;
-    WNDCLASS wndClass;
+    WNDCLASS wndClass = {};
 
     // Register the window class.
     wndClass.style = CS_HREDRAW | CS_VREDRAW;
@@ -84,7 +59,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
     case WM_CREATE:
     {
         // Initialize the common controls (If we need them at some point)
-        INITCOMMONCONTROLSEX icex;
+        INITCOMMONCONTROLSEX icex = {};
         icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
         icex.dwICC = ICC_LISTVIEW_CLASSES;
         InitCommonControlsEx(&icex);
@@ -210,10 +185,34 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         LVCOLUMN lvc3 = {};
 
         lvc3.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
-        lvc3.cx = 150; // Width of the column
-        lvc3.pszText = (LPWSTR)L"Information";
+        lvc3.cx = 125; // Width of the column
+        lvc3.pszText = (LPWSTR)L"These lists";
         lvc3.iSubItem = 0;
         ListView_InsertColumn(hwndListView3, 0, &lvc3);
+
+        lvc3.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+        lvc3.cx = 125; // Width of the column
+        lvc3.pszText = (LPWSTR)L"will display";
+        lvc3.iSubItem = 1;
+        ListView_InsertColumn(hwndListView3, 1, &lvc3);
+
+        lvc3.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+        lvc3.cx = 150; // Width of the column
+        lvc3.pszText = (LPWSTR)L"information about";
+        lvc3.iSubItem = 2;
+        ListView_InsertColumn(hwndListView3, 2, &lvc3);
+
+        lvc3.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+        lvc3.cx = 150; // Width of the column
+        lvc3.pszText = (LPWSTR)L"whatever you're";
+        lvc3.iSubItem = 3;
+        ListView_InsertColumn(hwndListView3, 3, &lvc3);
+
+        lvc3.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+        lvc3.cx = 150; // Width of the column
+        lvc3.pszText = (LPWSTR)L"highlighting.";
+        lvc3.iSubItem = 4;
+        ListView_InsertColumn(hwndListView3, 4, &lvc3);
 
         // Create context menu and set the member menu items
         hContextMenuArchives = CreatePopupMenu();
@@ -230,12 +229,28 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
     {
         // Set the size for the listviews
         int windowWidth = LOWORD(lParam);
-        int windowHeight = HIWORD(lParam) - 5;
-        int left_listview = ((windowWidth) / 2);
-        int remainder = windowWidth - left_listview;
-        MoveWindow(hwndListView, 5, 0, left_listview - 10, windowHeight, TRUE);
-        MoveWindow(hwndListView2, left_listview - 5, 0, remainder, (windowHeight / 3) * 2, TRUE);
-        MoveWindow(hwndListView3, left_listview - 5, (windowHeight / 3) * 2, remainder, (windowHeight / 3), TRUE);
+        int windowHeight = HIWORD(lParam);
+
+        // left side
+        int left_listview_width = ((windowWidth) / 2);
+        int left_listview_height = std::round((2.0 * windowHeight) / 3.0);
+
+        // Right side top
+        int right_top_listview_width = ((windowWidth) / 2);
+        int right_top_listview_height = std::round((2.0 * windowHeight) / 3.0);
+
+        // Right side bottom
+        int right_bottom_listview_width = ((windowWidth) / 2);
+        int right_bottom_listview_height = windowHeight - right_top_listview_height;
+
+        // Padding
+        int middle_padding = 6;
+        int right_divider_padding = 1;
+        int outer_border_padding = 5;
+
+        MoveWindow(hwndListView, 5, 0, left_listview_width - middle_padding, windowHeight - outer_border_padding, TRUE);
+        MoveWindow(hwndListView2, right_top_listview_width, 0, right_top_listview_width - outer_border_padding, right_top_listview_height - right_divider_padding, TRUE);
+        MoveWindow(hwndListView3, left_listview_width, right_top_listview_height, right_bottom_listview_width - outer_border_padding, right_bottom_listview_height - outer_border_padding, TRUE);
         break;
     }
     case WM_NOTIFY:
@@ -258,7 +273,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
                     // Track the context menu
                     TrackPopupMenu(hContextMenuArchives, TPM_LEFTALIGN | TPM_TOPALIGN, cursor.x, cursor.y, 0, hwnd, NULL);
-
                 }
                 break;
             }
@@ -269,8 +283,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 // Get the selected item text
                 int selectedItemIndex = ListView_GetNextItem(hwndListView, -1, LVNI_SELECTED);
                 if (selectedItemIndex != -1) {
-                    wchar_t Filename[512];
-                    wchar_t FileDirectory[512];
+                    wchar_t Filename[512] = {};
+                    wchar_t FileDirectory[512] = {};
                     ListView_GetItemText(hwndListView, selectedItemIndex, 0, Filename, sizeof(Filename) / sizeof(Filename[0]));
                     ListView_GetItemText(hwndListView, selectedItemIndex, 2, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
 
@@ -278,9 +292,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     std::wstring FullPath = FileDirectory;
                     FullPath += Filename;
 
-                    // Parse Archive
-                    
-
+                    // Parse Archive                
                     switch (magic::magic_parser(FullPath.c_str()))
                     {
                     case BIG_EB:
@@ -304,7 +316,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 }
                 break;
             }
-
         }
         else if (pnmh->idFrom == ID_LIST_VIEW2)
         {
@@ -329,7 +340,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
             case NM_DBLCLK:
                 break; 
             }
-
         }
         break;
     }
@@ -347,8 +357,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
             // Get the selected item text
             int selectedItemIndex = ListView_GetNextItem(hwndListView, -1, LVNI_SELECTED);
             if (selectedItemIndex != -1) {
-                wchar_t Filename[256];
-                wchar_t FileDirectory[256];
+                wchar_t Filename[256] = {};
+                wchar_t FileDirectory[256] = {};
                 ListView_GetItemText(hwndListView, selectedItemIndex, 0, Filename, sizeof(Filename) / sizeof(Filename[0]));
                 ListView_GetItemText(hwndListView, selectedItemIndex, 2, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
 
@@ -385,7 +395,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
             // Get the selected item text
             int selectedItemIndex = ListView_GetNextItem(hwndListView, -1, LVNI_SELECTED);
             if (selectedItemIndex != -1) {
-                wchar_t FileDirectory[256];
+                wchar_t FileDirectory[256] = {};
                 ListView_GetItemText(hwndListView, selectedItemIndex, 2, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
 
                 ShellExecute(NULL, L"open", L"explorer.exe", FileDirectory, NULL, SW_SHOWNORMAL);

@@ -27,7 +27,7 @@ namespace sf
         // Declare local variables.
         SFCompressionType3 compressionheader;
         size_t decompressed_size = 0;
-        uint32_t stream_index = 0;
+        uint64_t stream_index = 0;
         FILE* file = nullptr;
 
         // Fill compressionheader struct with important information from the SF compression header.

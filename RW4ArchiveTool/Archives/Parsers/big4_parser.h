@@ -52,7 +52,6 @@ namespace big4
         // Check if nullptr
         if (file == nullptr) {
             fprintf(stderr, "Error opening file for write.\n");
-            fclose(file);
             free(file_buffer);
             return false;
         }
@@ -107,7 +106,6 @@ namespace big4
         // Check if nullptr
         if (file == nullptr) {
             fprintf(stderr, "Error opening file for write.\n");
-            fclose(file);
             free(file_buffer);
             return false;
         }
@@ -133,7 +131,6 @@ namespace big4
         std::vector<Archive_Parse_Struct> Archive_Parse_Struct_vector = {};
         Big4Header big4_header = {};
         
-
         _wfopen_s(&archive, archiveName, L"rb");
         if (archive == NULL) {
             perror("Error opening archive");
@@ -149,38 +146,28 @@ namespace big4
             uint16_t compression_type = 0;
             uint32_t next_toc_offset = 0;
             size_t filename_length = 0;
-            std::string big_file_path = "";
             std::wstring full_out_filepath = directory;
             std::wstring full_out_file_directory = directory;
             Archive_Parse_Struct Parsed_Archive_Struct = {};
 
-            // Get file information.
-            fread(&big4_fat.offset, sizeof(big4_fat.offset), 1, archive);
-            fread(&big4_fat.size, sizeof(big4_fat.size), 1, archive);
-
             // Save location.
             next_toc_offset = ftell(archive);
 
-            // Read filename and get length of string.
-            fread(&big4_fat.filename, sizeof(big4_fat.filename), 1, archive);
-            big_file_path = big4_fat.filename;
-            filename_length = big_file_path.length();
+            // Get file information.
+            fread(&big4_fat, sizeof(big4_fat), 1, archive);
+            
+            // Get filename length.
+            filename_length = std::strlen(big4_fat.filename);
 
             // Calculate the next toc index offset.
-            next_toc_offset = next_toc_offset + filename_length + 1;
+            next_toc_offset = next_toc_offset + sizeof(big4_fat.offset) + sizeof(big4_fat.size) + filename_length + 1;
 
             // Convert the string to a filesystem path.
-            std::filesystem::path path(big_file_path);
-
-            // Extract the directory and file components.
-            std::wstring directory = path.parent_path().wstring();
-            std::wstring fileName = path.filename().wstring();
+            std::filesystem::path path(big4_fat.filename);
 
             // Build full path and directory.
-            full_out_file_directory += directory;
-            full_out_filepath += directory;
-            full_out_filepath += L"/";
-            full_out_filepath += fileName;
+            full_out_file_directory += path.parent_path().wstring();
+            full_out_filepath += (path.parent_path().wstring() + L"/" + path.filename().wstring());
             std::replace(full_out_file_directory.begin(), full_out_file_directory.end(), L'/', L'\\');
             std::replace(full_out_filepath.begin(), full_out_filepath.end(), L'/', L'\\');
 
@@ -190,38 +177,32 @@ namespace big4
             fseek(archive, dword_big_to_little_endian(big4_fat.offset), SEEK_SET);
 
             // Set Parsed_Archive struct members.
-            Parsed_Archive_Struct.filename = big_file_path;
+            Parsed_Archive_Struct.filename = path.filename().string();
             Parsed_Archive_Struct.file_size = dword_big_to_little_endian(big4_fat.size);
             Parsed_Archive_Struct.file_offset = dword_big_to_little_endian(big4_fat.offset);
-            if (word_big_to_little_endian(compression_type) == 0x10FB)
+           
+            switch (word_big_to_little_endian(compression_type))
             {
-                char ztype[] = "REFPACK";
-                memcpy(Parsed_Archive_Struct.ztype, ztype, sizeof(ztype));
+            case 0x10FB:
+                strcpy_s(Parsed_Archive_Struct.ztype, "REFPACK");
+                if (!unpack) { goto dont_unpack_loc; }
+                if (unpack_refpack_file(archive, dword_big_to_little_endian(big4_fat.size), full_out_file_directory, full_out_filepath) != true)
+                {
+                    MessageBox(0, L"Compressed file couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                }
+                break;
+            default:
+                strcpy_s(Parsed_Archive_Struct.ztype, "NONE");
+                if (!unpack) { goto dont_unpack_loc; }
+                if (unpack_uncompressed_file(archive, dword_big_to_little_endian(big4_fat.size), full_out_file_directory, full_out_filepath) != true)
+                {
+                    MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                }
+                break;
             }
-            else
-            {
-                char ztype[] = "NONE";
-                memcpy(Parsed_Archive_Struct.ztype, ztype, sizeof(ztype));
-            }
-            Archive_Parse_Struct_vector.push_back(Parsed_Archive_Struct);
 
-            if (unpack)
-            {
-                if (word_big_to_little_endian(compression_type) == 0x10FB)
-                {
-                    if (unpack_refpack_file(archive, dword_big_to_little_endian(big4_fat.size), full_out_file_directory, full_out_filepath) != true)
-                    {
-                        MessageBox(0, L"Compressed file couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-                    }
-                }
-                else
-                {
-                    if (unpack_uncompressed_file(archive, dword_big_to_little_endian(big4_fat.size), full_out_file_directory, full_out_filepath) != true)
-                    {
-                        MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-                    }
-                }
-            }
+            dont_unpack_loc:
+            Archive_Parse_Struct_vector.push_back(Parsed_Archive_Struct);
 
             fseek(archive, next_toc_offset, SEEK_SET);
         }

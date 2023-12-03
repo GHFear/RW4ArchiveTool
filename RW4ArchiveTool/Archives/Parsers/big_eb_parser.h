@@ -55,6 +55,14 @@ namespace big_eb
         uint32_t compressionType;
     };
 
+    struct TOCIndex {
+        DWORD offset;
+        DWORD compressed_size;
+        DWORD size;
+        DWORD hash1;
+        DWORD hash2; // Used only in 64-bit hash mode.
+    };
+
 
     bool chunkref_decompress(FILE* archive, std::wstring Filedirectory, std::wstring Filepath)
     {
@@ -290,50 +298,31 @@ namespace big_eb
         fseek(archive, 0x30, SEEK_SET);
         for (size_t i = 0; i < dword_big_to_little_endian(archive_header.FILE_AMOUNT); i++)
         {
-            // Declare local variables.
-            DWORD offset = 0;
-            DWORD compressed_size = 0;
-            DWORD size = 0;
-            DWORD hash1 = 0;
-            DWORD hash2 = 0;
-            
-            // Read offset.
-            fread(&offset, sizeof(offset), 1, archive);
-            offset = dword_big_to_little_endian(offset);
-            offset = offset << archive_header.ALIGNMENT;
+            // Build toc_index (or whatever we would call this)
+            TOCIndex toc_index = {};
+            fread(&toc_index, sizeof(toc_index), 1, archive);
+            toc_index.offset = dword_big_to_little_endian(toc_index.offset);
+            toc_index.offset = toc_index.offset << archive_header.ALIGNMENT;
+            toc_index.compressed_size = dword_big_to_little_endian(toc_index.compressed_size);
+            toc_index.size = dword_big_to_little_endian(toc_index.size);
+            toc_index.hash1 = dword_big_to_little_endian(toc_index.hash1);
+            toc_index.hash2 = dword_big_to_little_endian(toc_index.hash2);
 
-            // Read compressed size.
-            fread(&compressed_size, sizeof(compressed_size), 1, archive);
-            compressed_size = dword_big_to_little_endian(compressed_size);
-
-            // Read size.
-            fread(&size, sizeof(size), 1, archive);
-            size = dword_big_to_little_endian(size);
-
-            // Read hash1.
-            fread(&hash1, sizeof(hash1), 1, archive);
-            hash1 = dword_big_to_little_endian(hash1);
-
-            if (word_big_to_little_endian(archive_header.FLAGS) & FLAG_64BITHASH)
+            if (!(word_big_to_little_endian(archive_header.FLAGS) & FLAG_64BITHASH))
             {
-                // Read hash2. (if flag is set)
-                fread(&hash2, sizeof(hash2), 1, archive);
-                hash2 = dword_big_to_little_endian(hash2);
+                fseek(archive, -4, SEEK_CUR);
             }
 
             // Push values into vector.
-            offset_Vector.push_back(offset);
-            size_Vector.push_back(size);
+            offset_Vector.push_back(toc_index.offset);
+            size_Vector.push_back(toc_index.size);
         }
 
         for (size_t i = 0; i < dword_big_to_little_endian(archive_header.FILE_AMOUNT); i++)
         {
-            BYTE compression_type = 0;
-
             // Read compression type. (This doesn't exist on all versions of EB V3 and you may need to figure this out some other way.)
+            BYTE compression_type = 0;
             fread(&compression_type, sizeof(compression_type), 1, archive);
-
-            // Push type into vector.
             compression_type_Vector.push_back(compression_type);
         }
 
@@ -358,7 +347,6 @@ namespace big_eb
             // Read and build directory. (Stage 1: Filename) 
             fread(name_buffer.data(), archive_header.FILENAME_LENGTH, 1, archive);
             std::string name(name_buffer.begin(), std::find(name_buffer.begin(), name_buffer.end(), '\0'));
-
             std::string filename = name;
 
             DWORD next_name_offset = ftell(archive); // Save the current location as next name offset location.
@@ -387,77 +375,56 @@ namespace big_eb
             Parsed_Archive_Struct.filename = filename;
             Parsed_Archive_Struct.file_size = size;
             Parsed_Archive_Struct.file_offset = offset;
-            if (compression_type == 0)
+                        
+            switch (compression_type)
             {
-                char ztype[] = "NONE";
-                memcpy(Parsed_Archive_Struct.ztype, ztype, sizeof(ztype));
-            }
-            else if (compression_type == 1)
-            {
-                char ztype[] = "REFPACK";
-                memcpy(Parsed_Archive_Struct.ztype, ztype, sizeof(ztype));
-            }
-            else if (compression_type == 2)
-            {
-                char ztype[] = "REFPACK_CHUNKED";
-                memcpy(Parsed_Archive_Struct.ztype, ztype, sizeof(ztype));
-            }
-            else if (compression_type == 3)
-            {
-                char ztype[] = "ZLIB_CHUNKED";
-                memcpy(Parsed_Archive_Struct.ztype, ztype, sizeof(ztype));
-            }
-            else if (compression_type == 4)
-            {
-                char ztype[] = "LZX";
-                memcpy(Parsed_Archive_Struct.ztype, ztype, sizeof(ztype));
-            }
-            
-            Archive_Parse_Struct_vector.push_back(Parsed_Archive_Struct);
-            
-            // Check if we want to unpack.
-            if (unpack)
-            {
-
-                switch (compression_type)
+            case CompressionType::NONE:
+                strcpy_s(Parsed_Archive_Struct.ztype, "NONE");
+                if (!unpack) { goto dont_unpack_loc; }
+                //Check if we could unpack successfully.
+                if (unpack_uncompressed_file(archive, size, out_filedirectory, out_filepath) != true)
                 {
-                case CompressionType::NONE:
-                    //Check if we could unpack successfully.
-                    if (unpack_uncompressed_file(archive, size, out_filedirectory, out_filepath) != true)
-                    {
-                        MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-                    }
-                    break;
-                case CompressionType::REFPACK:
-                    //Check if we could unpack successfully.
-                    if (unpack_refpack_file(archive, size, out_filedirectory, out_filepath) != true)
-                    {
-                        MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-                    }
-                    break;
-                case CompressionType::REFPACK_CHUNKED:
-                    if (chunkref_decompress(archive, out_filedirectory, out_filepath) != true)
-                    {
-                        MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-                    }
-                    break;
-                case CompressionType::ZLIB_CHUNKED:
-                    MessageBox(0, L"File couldn't be unpacked! \nIt's of type: ZLIB_CHUNKED.", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-                    break;
-                case CompressionType::LZX:
-                    MessageBox(0, L"File couldn't be unpacked! \nIt's of type: LZX.", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-                    break;
-                default:
-                    break;
+                    MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
                 }
+                break;
+            case CompressionType::REFPACK:
+                strcpy_s(Parsed_Archive_Struct.ztype, "REFPACK");
+                if (!unpack) { goto dont_unpack_loc; }
+                //Check if we could unpack successfully.
+                if (unpack_refpack_file(archive, size, out_filedirectory, out_filepath) != true)
+                {
+                    MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                }
+                break;
+            case CompressionType::REFPACK_CHUNKED:
+                strcpy_s(Parsed_Archive_Struct.ztype, "REFPACK_CHUNKED");
+                if (!unpack) { goto dont_unpack_loc; }
+                if (chunkref_decompress(archive, out_filedirectory, out_filepath) != true)
+                {
+                    MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                }
+                break;
+            case CompressionType::ZLIB_CHUNKED:
+                strcpy_s(Parsed_Archive_Struct.ztype, "ZLIB_CHUNKED");
+                if (!unpack) { goto dont_unpack_loc; }
+                MessageBox(0, L"File couldn't be unpacked! \nIt's of type: ZLIB_CHUNKED.", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                break;
+            case CompressionType::LZX:
+                strcpy_s(Parsed_Archive_Struct.ztype, "LZX");
+                if (!unpack) { goto dont_unpack_loc; }
+                MessageBox(0, L"File couldn't be unpacked! \nIt's of type: LZX.", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                break;
+            default:
+                break;
             }
-            
+
+            dont_unpack_loc:
+            Archive_Parse_Struct_vector.push_back(Parsed_Archive_Struct);
             fseek(archive, next_name_offset, SEEK_SET); // Seek to the saved next name location.
         }
 
         // Close the archive.
         fclose(archive);
-
         return Archive_Parse_Struct_vector;
     }
 }

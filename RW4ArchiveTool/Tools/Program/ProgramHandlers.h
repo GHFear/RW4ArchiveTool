@@ -7,24 +7,14 @@ void UpdateWindowTitle(const std::wstring& fileName);
 
 std::wstring to_wstring(const std::string stringToConvert)
 {
-    // Calculate the required buffer size
     int wideStringLength = MultiByteToWideChar(CP_UTF8, 0, stringToConvert.c_str(), -1, nullptr, 0);
-
-    // Allocate a buffer for the wide string
     wchar_t* wideStringBuffer = new wchar_t[wideStringLength];
-
-    // Convert the string
     MultiByteToWideChar(CP_UTF8, 0, stringToConvert.c_str(), -1, wideStringBuffer, wideStringLength);
-
-    // Create std::wstring from the buffer
     std::wstring wideString(wideStringBuffer);
-
-    // Cleanup
     delete[] wideStringBuffer;
 
     return wideString;
 }
-
 
 void int_to_wchar(uint32_t input_int, wchar_t* wchar_reference, size_t bufferSize)
 {
@@ -184,6 +174,7 @@ void UpdateArchiveView(HWND hwnd, wchar_t* file)
         // Get information
         std::wstring archive_size = std::to_wstring(GetFileSizeFromOpenFileName(hwnd, selected_archives.first, selected_archives.second[i]));
 
+        // Fill listview with information.
         switch (magic::magic_parser(FullPath.c_str()))
         {
         case BIG_EB:
@@ -391,4 +382,28 @@ LRESULT CALLBACK SubclassListViewProc(HWND hwnd, UINT message, WPARAM wParam, LP
 void SubclassListView(HWND hwndListView)
 {
     SetWindowSubclass(hwndListView, SubclassListViewProc, 1, 0);
+}
+
+// Function to open a file dialog and load the file into the buffer
+void OpenFileAndLoadBuffer(HWND hwnd) {
+    OPENFILENAME ofn = { sizeof ofn };
+    wchar_t file[10240] = {};
+    file[0] = '\0';
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFile = file;
+    ofn.nMaxFile = 10240;
+    ofn.lpstrFilter = TEXT("EA Skate Archives\0*.xsf;*.psf;*.wsf;*.big\0All Files\0*.*\0\0");
+    ofn.nFilterIndex = 1;
+    ofn.lpstrFileTitle = NULL;
+    ofn.nMaxFileTitle = 0;
+    ofn.lpstrInitialDir = NULL;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT | OFN_EXPLORER;
+
+    // Display the Open dialog box.
+    if (GetOpenFileName(&ofn) == TRUE)
+    {
+        UpdateArchiveView(hwnd, file);
+    }
 }
