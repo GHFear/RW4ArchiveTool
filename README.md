@@ -24,5 +24,12 @@
 
 
 
+**List of games that this tool has been confirmed to work with:** <br>
+-Skate 1 | PS3 | Xbox 360 <br>
+-Skate 2 | PS3 | Xbox 360 <br>
+-Skate 3 | PS3 | Xbox 360 <br>
+-Skate It | Wii <br>
+-NHL21 | PS4 <br>
+
 
 */GHFear*
