@@ -2,6 +2,7 @@
 
 #pragma once
 #include "Archives/Compression/refpack/refpackd.h"
+#include <zlib.h>
 
 namespace big_eb
 {
@@ -63,18 +64,160 @@ namespace big_eb
         DWORD hash2; // Used only in 64-bit hash mode.
     };
 
+    bool decompress_deflate(const unsigned char* compressedData, size_t compressedSize, unsigned char* decompressedData, size_t& decompressedSize) {
+        z_stream stream;
+        stream.zalloc = Z_NULL;
+        stream.zfree = Z_NULL;
+        stream.opaque = Z_NULL;
+        stream.avail_in = static_cast<uInt>(compressedSize);
+        stream.next_in = const_cast<Bytef*>(compressedData);
+
+        if (inflateInit2(&stream, -MAX_WBITS) != Z_OK) {
+            std::cerr << "Error initializing zlib inflate for deflate format." << std::endl;
+            return false;
+        }
+
+        stream.avail_out = static_cast<uInt>(decompressedSize);
+        stream.next_out = decompressedData;
+
+        if (inflate(&stream, Z_FINISH) != Z_STREAM_END) {
+            std::cerr << "Error in zlib decompression for deflate format." << std::endl;
+            inflateEnd(&stream);
+            return false;
+        }
+
+        decompressedSize = stream.total_out;
+
+        if (inflateEnd(&stream) != Z_OK) {
+            std::cerr << "Error ending zlib inflate for deflate format." << std::endl;
+            return false;
+        }
+
+        return true;
+    }
+
+    bool chunkzip_decompress(FILE* archive, std::wstring Filedirectory, std::wstring Filepath)
+    {
+        // Local Variables.
+        FILE* file = nullptr;
+        std::vector<uint8_t> decompression_out_buffer_vector = {};
+        size_t decompressed_size = 0;
+        
+        ChunkPackHeader chunk_pack_header = {};
+        fread(&chunk_pack_header, sizeof(chunk_pack_header), 1, archive);
+
+        for (size_t i = 0; i < dword_big_to_little_endian(chunk_pack_header.numSegments); i++)
+        {
+            // Get the current location.
+            size_t current_location = ftell(archive);
+            std::cout << current_location << "\n";
+
+            // Extract the last hexadecimal digit
+            int lastDigit = current_location % 0x10;
+
+            // Check if the last digit is greater than 0x08 or 0.
+            if (lastDigit > 0x08 || lastDigit == 0) {
+                std::cout << "The offset ends with a value greater than or equal to 0x08." << std::endl;
+                current_location = round_up(current_location, dword_big_to_little_endian(chunk_pack_header.alignedTo));
+                current_location += 8;
+            }
+            else {
+                std::cout << "The offset does not end with a value greater than or equal to 0x08." << std::endl;
+                current_location = round_up(current_location, 8);
+            }
+
+            fseek(archive, current_location, SEEK_SET); // Seek to closest aligned location recognized by the BIG EB v3 format.
+
+            // Read RW chunk block header.
+            ChunkBlockHeader block_header = {};
+            fread(&block_header, sizeof(block_header), 1, archive);
+
+            // Allocate memory for our file buffer
+            char* file_buffer = (char*)malloc(dword_big_to_little_endian(block_header.chunkSizeCompressed));
+            if (file_buffer == NULL) {
+                perror("Error allocating memory");
+                return false;
+            }
+
+            // Read chunk into file buffer.
+            fread(file_buffer, dword_big_to_little_endian(block_header.chunkSizeCompressed), 1, archive); // Read file into buffer
+            std::vector<uint8_t> decompression_in_buffer_vector(file_buffer, file_buffer + dword_big_to_little_endian(block_header.chunkSizeCompressed));
+
+
+            // Check if the chunk is compressed.
+            if (dword_big_to_little_endian(block_header.compressionType) == 2) // Chunk is compressed with refpack.
+            {
+                std::vector<uint8_t> chunk_decompression_out_buffer_vector = refpack::decompress(decompression_in_buffer_vector);
+                decompressed_size += chunk_decompression_out_buffer_vector.size();
+                decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), chunk_decompression_out_buffer_vector.begin(), chunk_decompression_out_buffer_vector.end());
+            }
+            else if (dword_big_to_little_endian(block_header.compressionType) == 4) // Chunk is not compressed
+            {
+                decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), decompression_in_buffer_vector.begin(), decompression_in_buffer_vector.end());
+            }
+            else if (dword_big_to_little_endian(block_header.compressionType) == 1) // Chunk is compressed with zlib.
+            {
+                // Allocate a buffer for the decompressed data
+                size_t chunk_decompressed_size = dword_big_to_little_endian(block_header.chunkSizeCompressed) * 200;
+                unsigned char* decompressedData = new unsigned char[chunk_decompressed_size];
+
+                // Decompress the data
+                if (decompress_deflate(decompression_in_buffer_vector.data(), dword_big_to_little_endian(block_header.chunkSizeCompressed), decompressedData, chunk_decompressed_size)) {
+                    decompressed_size += chunk_decompressed_size;
+                    decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), decompressedData, decompressedData + chunk_decompressed_size);
+                    delete[] decompressedData;
+                }
+                else {
+                    std::cerr << "Decompression failed." << std::endl;
+                }
+            }
+
+            free(file_buffer);
+        }
+
+        // Attempt to create the directory
+        if (CreateDirectoryRecursively(Filedirectory.c_str())) {
+            wprintf(L"Directory created: %s\n", Filedirectory.c_str());
+        }
+        else {
+            wprintf(L"Failed to create directory or directory already exists: %s\n", Filedirectory.c_str());
+        }
+
+        // Write to file.
+        if (_wfopen_s(&file, Filepath.c_str(), L"wb+") != 0)
+        {
+            fprintf(stderr, "Error opening file.\n");
+            return false;
+        }
+
+        // Check if nullptr
+        if (file == nullptr) {
+            fprintf(stderr, "Error opening file for write.\n");
+            return false;
+        }
+
+        //  Write and check if we wrote all bytes.
+        size_t bytesWritten = fwrite(decompression_out_buffer_vector.data(), sizeof(char), dword_big_to_little_endian(chunk_pack_header.uncompressedLength), file);
+        if (bytesWritten != dword_big_to_little_endian(chunk_pack_header.uncompressedLength)) {
+            fprintf(stderr, "Error writing to file.\n");
+            fclose(file);
+            return false;
+        }
+
+        fclose(file);
+        return true;
+    }
 
     bool chunkref_decompress(FILE* archive, std::wstring Filedirectory, std::wstring Filepath)
     {
         // Local Variables.
         FILE* file = nullptr;
-        ChunkPackHeader chunk_pack_header = {};
         std::vector<uint8_t> decompression_out_buffer_vector = {};
         size_t decompressed_size = 0;
 
-        // Read RW chunk pack header.
+        ChunkPackHeader chunk_pack_header = {};
         fread(&chunk_pack_header, sizeof(chunk_pack_header), 1, archive);
-        
+    
         for (size_t i = 0; i < dword_big_to_little_endian(chunk_pack_header.numSegments); i++)
         {
             // Get the current location.
@@ -335,9 +478,6 @@ namespace big_eb
             std::wstring out_filedirectory = directory;
             std::vector<char> name_buffer(archive_header.FILENAME_LENGTH);
             std::vector<char> folder_buffer(archive_header.FOLDERNAME_LENGTH);
-            DWORD offset = offset_Vector[i];
-            DWORD size = size_Vector[i];
-            BYTE compression_type = compression_type_Vector[i];
             WORD folder_number = 0;
             
             // Read the folder number.
@@ -363,7 +503,7 @@ namespace big_eb
             final_extracted_filepath += "/";
             final_extracted_filepath += name;
 
-            fseek(archive, offset, SEEK_SET); // Seek to file offset location.
+            fseek(archive, offset_Vector[i], SEEK_SET); // Seek to file offset location.
 
             // Prepare final wide character strings. (Stage 3: Build proper path)
             out_filedirectory += ConvertCharToWchar(folder.c_str());
@@ -373,49 +513,65 @@ namespace big_eb
 
             // Set Parsed_Archive struct members.
             Parsed_Archive_Struct.filename = filename;
-            Parsed_Archive_Struct.file_size = size;
-            Parsed_Archive_Struct.file_offset = offset;
-                        
-            switch (compression_type)
+            Parsed_Archive_Struct.file_size = size_Vector[i];
+            Parsed_Archive_Struct.file_offset = offset_Vector[i];
+
+            // Read RW chunk pack header.
+            ChunkPackHeader chunk_pack_header = {};
+            fread(&chunk_pack_header, sizeof(chunk_pack_header), 1, archive);
+            std::string chunkpack_id = chunk_pack_header.id;
+
+            fseek(archive, offset_Vector[i], SEEK_SET); // Seek to file offset location.
+
+            if (chunkpack_id == "chunkref") // Chunkpacked file compressed with refpack.
             {
-            case CompressionType::NONE:
-                strcpy_s(Parsed_Archive_Struct.ztype, "NONE");
-                if (!unpack) { goto dont_unpack_loc; }
-                //Check if we could unpack successfully.
-                if (unpack_uncompressed_file(archive, size, out_filedirectory, out_filepath) != true)
-                {
-                    MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-                }
-                break;
-            case CompressionType::REFPACK:
-                strcpy_s(Parsed_Archive_Struct.ztype, "REFPACK");
-                if (!unpack) { goto dont_unpack_loc; }
-                //Check if we could unpack successfully.
-                if (unpack_refpack_file(archive, size, out_filedirectory, out_filepath) != true)
-                {
-                    MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-                }
-                break;
-            case CompressionType::REFPACK_CHUNKED:
-                strcpy_s(Parsed_Archive_Struct.ztype, "REFPACK_CHUNKED");
+                strcpy_s(Parsed_Archive_Struct.ztype, "CHUNKREF");
                 if (!unpack) { goto dont_unpack_loc; }
                 if (chunkref_decompress(archive, out_filedirectory, out_filepath) != true)
                 {
                     MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
                 }
-                break;
-            case CompressionType::ZLIB_CHUNKED:
-                strcpy_s(Parsed_Archive_Struct.ztype, "ZLIB_CHUNKED");
+            }
+            else if (chunkpack_id == "chunkzip") // Chunkpacked file compressed with zlib.
+            {
+                strcpy_s(Parsed_Archive_Struct.ztype, "CHUNKZIP");
                 if (!unpack) { goto dont_unpack_loc; }
-                MessageBox(0, L"File couldn't be unpacked! \nIt's of type: ZLIB_CHUNKED.", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-                break;
-            case CompressionType::LZX:
-                strcpy_s(Parsed_Archive_Struct.ztype, "LZX");
+                if (chunkzip_decompress(archive, out_filedirectory, out_filepath) != true)
+                {
+                    MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                }
+            }
+            else if (chunkpack_id == "chunklzx") // Chunkpacked file compressed with lzx.
+            {
+                strcpy_s(Parsed_Archive_Struct.ztype, "CHUNKLZX");
                 if (!unpack) { goto dont_unpack_loc; }
-                MessageBox(0, L"File couldn't be unpacked! \nIt's of type: LZX.", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-                break;
-            default:
-                break;
+                MessageBox(0, L"File couldn't be unpacked! \nIt's of type: Chunked LZX.", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+            }
+            else //Single file (can be uncompressed or compressed with refpack)
+            {
+                WORD refpack_magic; 
+                fread(&refpack_magic, sizeof(WORD), 1, archive);
+                fseek(archive, offset_Vector[i], SEEK_SET); // Seek to file offset location.
+                if (word_big_to_little_endian(refpack_magic) == 0x10FB) // Single file compressed with refpack
+                {
+                    strcpy_s(Parsed_Archive_Struct.ztype, "REFPACK");
+                    if (!unpack) { goto dont_unpack_loc; }
+                    //Check if we could unpack successfully.
+                    if (unpack_refpack_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
+                    {
+                        MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    }
+                }
+                else // Single file uncompressed
+                {
+                    strcpy_s(Parsed_Archive_Struct.ztype, "NONE");
+                    if (!unpack) { goto dont_unpack_loc; }
+                    //Check if we could unpack successfully.
+                    if (unpack_uncompressed_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
+                    {
+                        MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    }
+                }
             }
 
             dont_unpack_loc:
