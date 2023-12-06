@@ -17,11 +17,11 @@
 -None <br>
 -Refpack <br>
 -Chunked Refpack <br>
+-Chunked ZLIB <br>
 
 **(Compression types that I need to add support for)** <br>
--LZX <br>
--ZLIB <br>
--Chunked ZLIB <br>
+-Chunked LZX <br>
+
 
 
 
