@@ -158,7 +158,7 @@ namespace big_eb
             else if (dword_big_to_little_endian(block_header.compressionType) == 1) // Chunk is compressed with zlib.
             {
                 // Allocate a buffer for the decompressed data
-                size_t chunk_decompressed_size = dword_big_to_little_endian(block_header.chunkSizeCompressed) * 200;
+                size_t chunk_decompressed_size = dword_big_to_little_endian(chunk_pack_header.uncompressedLength);
                 unsigned char* decompressedData = new unsigned char[chunk_decompressed_size];
 
                 // Decompress the data
