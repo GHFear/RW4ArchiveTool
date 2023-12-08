@@ -29,19 +29,21 @@ void bytearray_to_hexstring(const unsigned char* byteArray, size_t byteArraySize
     }
 }
 
-int round_up(int numToRound, int multiple)
-{
-    if (multiple == 0)
-        return numToRound;
+uint64_t roundUpToMultiple(uint64_t value, uint64_t multiple) {
+    if (multiple == 0) {
+        // Avoid division by zero
+        return value;
+    }
 
-    int remainder = abs(numToRound) % multiple;
-    if (remainder == 0)
-        return numToRound;
+    // Calculate the remainder
+    uint64_t remainder = value % multiple;
 
-    if (numToRound < 0)
-        return -(abs(numToRound) - remainder);
-    else
-        return numToRound + multiple - remainder;
+    // If the remainder is non-zero, round up
+    if (remainder != 0) {
+        value += (multiple - remainder);
+    }
+
+    return value;
 }
 
 bool CreateDirectoryRecursively(const wchar_t* path) {

@@ -49,6 +49,6 @@ enum SFTYPE {
 struct Archive_Parse_Struct {
     std::string filename;
     UINT32 file_size;
-    UINT32 file_offset;
+    UINT64 file_offset;
     char ztype[256];
 };

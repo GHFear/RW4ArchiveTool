@@ -109,24 +109,24 @@ namespace big_eb
         for (size_t i = 0; i < dword_big_to_little_endian(chunk_pack_header.numSegments); i++)
         {
             // Get the current location.
-            size_t current_location = ftell(archive);
+            size_t current_location = _ftelli64(archive);
             std::cout << current_location << "\n";
 
             // Extract the last hexadecimal digit
-            int lastDigit = current_location % 0x10;
+            size_t lastDigit = current_location % 0x10;
 
             // Check if the last digit is greater than 0x08 or 0.
             if (lastDigit > 0x08 || lastDigit == 0) {
                 std::cout << "The offset ends with a value greater than or equal to 0x08." << std::endl;
-                current_location = round_up(current_location, dword_big_to_little_endian(chunk_pack_header.alignedTo));
+                current_location = roundUpToMultiple(current_location, dword_big_to_little_endian(chunk_pack_header.alignedTo));
                 current_location += 8;
             }
             else {
                 std::cout << "The offset does not end with a value greater than or equal to 0x08." << std::endl;
-                current_location = round_up(current_location, 8);
+                current_location = roundUpToMultiple(current_location, 8);
             }
 
-            fseek(archive, current_location, SEEK_SET); // Seek to closest aligned location recognized by the BIG EB v3 format.
+            _fseeki64(archive, current_location, SEEK_SET); // Seek to closest aligned location recognized by the BIG EB v3 format.
 
             // Read RW chunk block header.
             ChunkBlockHeader block_header = {};
@@ -221,24 +221,24 @@ namespace big_eb
         for (size_t i = 0; i < dword_big_to_little_endian(chunk_pack_header.numSegments); i++)
         {
             // Get the current location.
-            size_t current_location = ftell(archive);
+            size_t current_location = _ftelli64(archive);
             std::cout << current_location << "\n";
 
             // Extract the last hexadecimal digit
-            int lastDigit = current_location % 0x10;
+            size_t lastDigit = current_location % 0x10;
 
             // Check if the last digit is greater than 0x08 or 0.
             if (lastDigit > 0x08 || lastDigit == 0) {
                 std::cout << "The offset ends with a value greater than or equal to 0x08." << std::endl;
-                current_location = round_up(current_location, dword_big_to_little_endian(chunk_pack_header.alignedTo));
+                current_location = roundUpToMultiple(current_location, dword_big_to_little_endian(chunk_pack_header.alignedTo));
                 current_location += 8;
             }
             else {
                 std::cout << "The offset does not end with a value greater than or equal to 0x08." << std::endl;
-                current_location = round_up(current_location, 8);
+                current_location = roundUpToMultiple(current_location, 8);
             }
 
-             fseek(archive, current_location, SEEK_SET); // Seek to closest aligned location recognized by the BIG EB v3 format.
+             _fseeki64(archive, current_location, SEEK_SET); // Seek to closest aligned location recognized by the BIG EB v3 format.
 
              // Read RW chunk block header.
              ChunkBlockHeader block_header = {};
@@ -357,6 +357,14 @@ namespace big_eb
         return true;
     }
 
+    void failed_to_unpack_messagebox(std::string input_msg)
+    {
+        std::string output_string = " Failed out unpack.";
+        output_string += input_msg;
+
+        MessageBoxA(0, output_string.c_str(), "Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+    }
+
     bool unpack_refpack_file(FILE* archive, DWORD SIZE, std::wstring Filedirectory, std::wstring Filepath)
     {
         FILE* file = nullptr;
@@ -417,7 +425,7 @@ namespace big_eb
         FILE* archive = nullptr;
         BigEBArchiveHeader archive_header = {};
         std::vector<Archive_Parse_Struct> Archive_Parse_Struct_vector = {};
-        std::vector<DWORD> offset_Vector;
+        std::vector<UINT64> offset_Vector;
         std::vector<DWORD> size_Vector;
         std::vector<BYTE> compression_type_Vector;
         DWORD folders_offset = 0;
@@ -435,17 +443,16 @@ namespace big_eb
         folders_offset = dword_big_to_little_endian(archive_header.FILE_AMOUNT);
         folders_offset *= archive_header.FILENAME_LENGTH;
         folders_offset += dword_big_to_little_endian(archive_header.NAMES_OFFSET);
-        folders_offset = round_up(folders_offset, 0x10);
+        folders_offset = roundUpToMultiple(folders_offset, 0x10);
         archive_header.FILENAME_LENGTH -= 2;
 
-        fseek(archive, 0x30, SEEK_SET);
+        _fseeki64(archive, 0x30, SEEK_SET);
         for (size_t i = 0; i < dword_big_to_little_endian(archive_header.FILE_AMOUNT); i++)
         {
             // Build toc_index (or whatever we would call this)
             TOCIndex toc_index = {};
             fread(&toc_index, sizeof(toc_index), 1, archive);
             toc_index.offset = dword_big_to_little_endian(toc_index.offset);
-            toc_index.offset = toc_index.offset << archive_header.ALIGNMENT;
             toc_index.compressed_size = dword_big_to_little_endian(toc_index.compressed_size);
             toc_index.size = dword_big_to_little_endian(toc_index.size);
             toc_index.hash1 = dword_big_to_little_endian(toc_index.hash1);
@@ -453,11 +460,13 @@ namespace big_eb
 
             if (!(word_big_to_little_endian(archive_header.FLAGS) & FLAG_64BITHASH))
             {
-                fseek(archive, -4, SEEK_CUR);
+                _fseeki64(archive, -4, SEEK_CUR);
             }
 
             // Push values into vector.
-            offset_Vector.push_back(toc_index.offset);
+            UINT64 OFFSET64 = toc_index.offset;
+            OFFSET64 = OFFSET64 << archive_header.ALIGNMENT;
+            offset_Vector.push_back(OFFSET64);
             size_Vector.push_back(toc_index.size);
         }
 
@@ -469,7 +478,7 @@ namespace big_eb
             compression_type_Vector.push_back(compression_type);
         }
 
-        fseek(archive, dword_big_to_little_endian(archive_header.NAMES_OFFSET), SEEK_SET);
+        _fseeki64(archive, dword_big_to_little_endian(archive_header.NAMES_OFFSET), SEEK_SET);
         for (size_t i = 0; i < dword_big_to_little_endian(archive_header.FILE_AMOUNT); i++)
         {
             // Declare local variables.
@@ -489,12 +498,12 @@ namespace big_eb
             std::string name(name_buffer.begin(), std::find(name_buffer.begin(), name_buffer.end(), '\0'));
             std::string filename = name;
 
-            DWORD next_name_offset = ftell(archive); // Save the current location as next name offset location.
+            DWORD next_name_offset = _ftelli64(archive); // Save the current location as next name offset location.
             DWORD foldername_offset = folder_number;
             foldername_offset *= archive_header.FOLDERNAME_LENGTH;
             foldername_offset += folders_offset;
 
-            fseek(archive, foldername_offset, SEEK_SET); // Seek to foldername location in archive.
+            _fseeki64(archive, foldername_offset, SEEK_SET); // Seek to foldername location in archive.
 
             // Read and build directory. (Stage 2: directory)
             fread(folder_buffer.data(), archive_header.FOLDERNAME_LENGTH, 1, archive);
@@ -503,7 +512,7 @@ namespace big_eb
             final_extracted_filepath += "/";
             final_extracted_filepath += name;
 
-            fseek(archive, offset_Vector[i], SEEK_SET); // Seek to file offset location.
+            _fseeki64(archive, offset_Vector[i], SEEK_SET); // Seek to file offset location.
 
             // Prepare final wide character strings. (Stage 3: Build proper path)
             out_filedirectory += ConvertCharToWchar(folder.c_str());
@@ -521,7 +530,7 @@ namespace big_eb
             fread(&chunk_pack_header, sizeof(chunk_pack_header), 1, archive);
             std::string chunkpack_id = chunk_pack_header.id;
 
-            fseek(archive, offset_Vector[i], SEEK_SET); // Seek to file offset location.
+            _fseeki64(archive, offset_Vector[i], SEEK_SET); // Seek to file offset location.
 
             if (chunkpack_id == "chunkref") // Chunkpacked file compressed with refpack.
             {
@@ -529,7 +538,7 @@ namespace big_eb
                 if (!unpack) { goto dont_unpack_loc; }
                 if (chunkref_decompress(archive, out_filedirectory, out_filepath) != true)
                 {
-                    MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    failed_to_unpack_messagebox(filename);
                 }
             }
             else if (chunkpack_id == "chunkzip") // Chunkpacked file compressed with zlib.
@@ -538,20 +547,20 @@ namespace big_eb
                 if (!unpack) { goto dont_unpack_loc; }
                 if (chunkzip_decompress(archive, out_filedirectory, out_filepath) != true)
                 {
-                    MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    failed_to_unpack_messagebox(filename);
                 }
             }
             else if (chunkpack_id == "chunklzx") // Chunkpacked file compressed with lzx.
             {
                 strcpy_s(Parsed_Archive_Struct.ztype, "CHUNKLZX");
                 if (!unpack) { goto dont_unpack_loc; }
-                MessageBox(0, L"File couldn't be unpacked! \nIt's of type: Chunked LZX.", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                failed_to_unpack_messagebox(filename);
             }
             else //Single file (can be uncompressed or compressed with refpack)
             {
                 WORD refpack_magic; 
                 fread(&refpack_magic, sizeof(WORD), 1, archive);
-                fseek(archive, offset_Vector[i], SEEK_SET); // Seek to file offset location.
+                _fseeki64(archive, offset_Vector[i], SEEK_SET); // Seek to file offset location.
                 if (word_big_to_little_endian(refpack_magic) == 0x10FB) // Single file compressed with refpack
                 {
                     strcpy_s(Parsed_Archive_Struct.ztype, "REFPACK");
@@ -559,7 +568,7 @@ namespace big_eb
                     //Check if we could unpack successfully.
                     if (unpack_refpack_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
                     {
-                        MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                        failed_to_unpack_messagebox(filename);
                     }
                 }
                 else // Single file uncompressed
@@ -569,14 +578,14 @@ namespace big_eb
                     //Check if we could unpack successfully.
                     if (unpack_uncompressed_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
                     {
-                        MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                        failed_to_unpack_messagebox(filename);
                     }
                 }
             }
 
             dont_unpack_loc:
             Archive_Parse_Struct_vector.push_back(Parsed_Archive_Struct);
-            fseek(archive, next_name_offset, SEEK_SET); // Seek to the saved next name location.
+            _fseeki64(archive, next_name_offset, SEEK_SET); // Seek to the saved next name location.
         }
 
         // Close the archive.

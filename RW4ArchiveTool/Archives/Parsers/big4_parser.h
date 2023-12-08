@@ -151,7 +151,7 @@ namespace big4
             Archive_Parse_Struct Parsed_Archive_Struct = {};
 
             // Save location.
-            next_toc_offset = ftell(archive);
+            next_toc_offset = _ftelli64(archive);
 
             // Get file information.
             fread(&big4_fat, sizeof(big4_fat), 1, archive);
@@ -172,9 +172,9 @@ namespace big4
             std::replace(full_out_filepath.begin(), full_out_filepath.end(), L'/', L'\\');
 
             // Seek to file offset, read first 4 bytes and go back to file offset.
-            fseek(archive, dword_big_to_little_endian(big4_fat.offset), SEEK_SET);
+            _fseeki64(archive, dword_big_to_little_endian(big4_fat.offset), SEEK_SET);
             fread(&compression_type, sizeof(compression_type), 1, archive);
-            fseek(archive, dword_big_to_little_endian(big4_fat.offset), SEEK_SET);
+            _fseeki64(archive, dword_big_to_little_endian(big4_fat.offset), SEEK_SET);
 
             // Set Parsed_Archive struct members.
             Parsed_Archive_Struct.filename = path.filename().string();
@@ -204,7 +204,7 @@ namespace big4
             dont_unpack_loc:
             Archive_Parse_Struct_vector.push_back(Parsed_Archive_Struct);
 
-            fseek(archive, next_toc_offset, SEEK_SET);
+            _fseeki64(archive, next_toc_offset, SEEK_SET);
         }
 
         fclose(archive);
