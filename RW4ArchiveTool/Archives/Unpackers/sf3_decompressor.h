@@ -19,7 +19,7 @@ namespace sf
         std::vector<DWORD> CompressedBlockSizes;
     };
 
-    void sf_decompress_type3(char* stream_file_bytearray, char* filename, const wchar_t* directory, uint32_t sf_header_size)
+    void sf_decompress_type3(char* stream_file_bytearray, const char* filename, const wchar_t* directory, uint32_t sf_header_size)
     {
         std::wstring concatenatedText = directory;
         concatenatedText += ConvertCharToWchar(filename);

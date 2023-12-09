@@ -152,6 +152,7 @@ namespace big4
 
             // Save location.
             next_toc_offset = _ftelli64(archive);
+            Parsed_Archive_Struct.toc_offset = next_toc_offset;
 
             // Get file information.
             fread(&big4_fat, sizeof(big4_fat), 1, archive);
@@ -180,6 +181,7 @@ namespace big4
             Parsed_Archive_Struct.filename = path.filename().string();
             Parsed_Archive_Struct.file_size = dword_big_to_little_endian(big4_fat.size);
             Parsed_Archive_Struct.file_offset = dword_big_to_little_endian(big4_fat.offset);
+            
            
             switch (word_big_to_little_endian(compression_type))
             {

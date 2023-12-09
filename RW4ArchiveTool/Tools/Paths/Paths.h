@@ -39,6 +39,21 @@ std::pair<std::wstring, std::vector<std::wstring>> ParseMultiFilePath(const _TCH
     return std::make_pair(directory + L"\\", fileNames);
 }
 
+// Function to get the file extension from a wchar_t filepath
+const wchar_t* GetFileExtension(const wchar_t* filepath) {
+    // Find the last dot ('.') character in the filepath
+    const wchar_t* dot = wcsrchr(filepath, L'.');
+
+    // Check if a dot was found and it is not the last character
+    if (dot != nullptr && dot[1] != L'\0') {
+        // Return the characters following the dot as the file extension
+        return dot + 1;
+    }
+
+    // No file extension found
+    return nullptr;
+}
+
 std::pair<std::wstring, std::vector<std::wstring>> ParseFilePath(const std::wstring& filePath) {
     // Find the last backslash to separate the directory and filename
     size_t lastBackslash = filePath.find_last_of(L'\\');

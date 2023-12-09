@@ -50,5 +50,6 @@ struct Archive_Parse_Struct {
     std::string filename;
     UINT32 file_size;
     UINT64 file_offset;
+    UINT64 toc_offset;
     char ztype[256];
 };

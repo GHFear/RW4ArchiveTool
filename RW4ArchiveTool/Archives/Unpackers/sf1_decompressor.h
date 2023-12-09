@@ -7,7 +7,7 @@
 
 namespace sf
 {
-    void sf_decompress_type1(char* stream_file_bytearray, char* filename, CollectionAsset streamfile_header, const wchar_t* directory, uint32_t sf_header_size)
+    void sf_decompress_type1(char* stream_file_bytearray, const char* filename, CollectionAsset streamfile_header, const wchar_t* directory, uint32_t sf_header_size)
     {
         std::wstring concatenatedText = directory;
         concatenatedText += ConvertCharToWchar(filename);

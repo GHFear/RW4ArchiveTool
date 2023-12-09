@@ -116,6 +116,7 @@ void UpdateFileView(HWND hwnd_list, std::vector<Archive_Parse_Struct> fileVector
         std::wstring file_size = std::to_wstring(fileVector[i].file_size);
         std::wstring file_index = std::to_wstring(i);
         std::wstring file_offset = std::to_wstring(fileVector[i].file_offset);
+        std::wstring toc_offset = std::to_wstring(fileVector[i].toc_offset);
         std::wstring WideZtype = to_wstring(fileVector[i].ztype);
 
         // Add other columns
@@ -124,6 +125,7 @@ void UpdateFileView(HWND hwnd_list, std::vector<Archive_Parse_Struct> fileVector
         ListView_SetItemText(hwnd_list, i, 2, const_cast<LPWSTR>(file_size.c_str()));
         ListView_SetItemText(hwnd_list, i, 3, const_cast<LPWSTR>(file_offset.c_str()));
         ListView_SetItemText(hwnd_list, i, 4, const_cast<LPWSTR>(WideZtype.c_str()));
+        ListView_SetItemText(hwnd_list, i, 5, const_cast<LPWSTR>(toc_offset.c_str()));
     }
 
     // Set redraw to true after adding items.

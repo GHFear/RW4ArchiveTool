@@ -425,6 +425,7 @@ namespace big_eb
         FILE* archive = nullptr;
         BigEBArchiveHeader archive_header = {};
         std::vector<Archive_Parse_Struct> Archive_Parse_Struct_vector = {};
+        std::vector<UINT64> toc_offset_Vector;
         std::vector<UINT64> offset_Vector;
         std::vector<DWORD> size_Vector;
         std::vector<BYTE> compression_type_Vector;
@@ -451,6 +452,7 @@ namespace big_eb
         {
             // Build toc_index (or whatever we would call this)
             TOCIndex toc_index = {};
+            toc_offset_Vector.push_back(_ftelli64(archive));
             fread(&toc_index, sizeof(toc_index), 1, archive);
             toc_index.offset = dword_big_to_little_endian(toc_index.offset);
             toc_index.compressed_size = dword_big_to_little_endian(toc_index.compressed_size);
@@ -520,10 +522,15 @@ namespace big_eb
             std::replace(out_filedirectory.begin(), out_filedirectory.end(), L'/', L'\\');
             out_filepath += ConvertCharToWchar(final_extracted_filepath.c_str());
 
-            // Set Parsed_Archive struct members.
-            Parsed_Archive_Struct.filename = filename;
-            Parsed_Archive_Struct.file_size = size_Vector[i];
-            Parsed_Archive_Struct.file_offset = offset_Vector[i];
+
+            if (!unpack)
+            {
+                // Set Parsed_Archive struct members.
+                Parsed_Archive_Struct.filename = filename;
+                Parsed_Archive_Struct.file_size = size_Vector[i];
+                Parsed_Archive_Struct.file_offset = offset_Vector[i];
+                Parsed_Archive_Struct.toc_offset = toc_offset_Vector[i];
+            }
 
             // Read RW chunk pack header.
             ChunkPackHeader chunk_pack_header = {};

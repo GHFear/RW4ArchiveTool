@@ -45,7 +45,8 @@ namespace sf
         while (ftell(archive) < sfa_size)
         {
             // Declare local variables.
-            char filename[17];
+            char char_filename[17];
+            std::string filename = "";
             uint32_t streamfile_header_size = 0;
             long streamfile_startposition = 0;
             long stream_file_size = 0;
@@ -68,7 +69,9 @@ namespace sf
             stream_file_size = dword_big_to_little_endian(stream_file_header->Stride);
 
             // Set the filename
-            bytearray_to_hexstring(stream_file_header->ID, sizeof(stream_file_header->ID), filename);
+            bytearray_to_hexstring(stream_file_header->ID, sizeof(stream_file_header->ID), char_filename);
+            filename = char_filename;
+            const wchar_t* file_extension = GetFileExtension(archiveName);
 
             // Create byte array with size of file_size
             char* stream_file_bytearray = (char*)malloc(stream_file_size);
@@ -89,30 +92,45 @@ namespace sf
             parse_struct.filename = filename;
             parse_struct.file_size = stream_file_size;
             parse_struct.file_offset = streamfile_startposition;
+            parse_struct.toc_offset = streamfile_startposition;
             parse_struct_vector.push_back(parse_struct);
 
-            // Unpack if we set the unpack boolean to true.
-            if (unpack == true)
+            // Run this code if we set unpack to true when calling this function.
+            if (!unpack) { goto dont_unpack_loc; }
+
+            if (StrCmpCW(file_extension, L"psf") == 0)
             {
-                switch (dword_big_to_little_endian(sfa_header->StreamFormat))
-                {
-                case SF1:
-                    sf_decompress_type1(stream_file_bytearray, filename, *stream_file_header, directory, dword_big_to_little_endian(stream_file_header->Offset));
-                    break;
-                case SF2:
-                    sf_decompress_type2(stream_file_bytearray, filename, directory, dword_big_to_little_endian(stream_file_header->Offset));
-                    break;
-                case SF3:
-                    sf_decompress_type3(stream_file_bytearray, filename, directory, dword_big_to_little_endian(stream_file_header->Offset));
-                    break;
-                case UNKNOWN:
-                    break;
-                default:
-                    break;
-                }
+                filename += ".psg";
             }
-            
+            else if (StrCmpCW(file_extension, L"xsf") == 0)
+            {
+                filename += ".rx2";
+            }
+            else if (StrCmpCW(file_extension, L"wsf") == 0)
+            {
+                filename += ".rg2";
+            }
+
+            switch (dword_big_to_little_endian(sfa_header->StreamFormat))
+            {
+            case SF1:
+                sf_decompress_type1(stream_file_bytearray, filename.c_str(), *stream_file_header, directory, dword_big_to_little_endian(stream_file_header->Offset));
+                break;
+            case SF2:
+                sf_decompress_type2(stream_file_bytearray, filename.c_str(), directory, dword_big_to_little_endian(stream_file_header->Offset));
+                break;
+            case SF3:
+                sf_decompress_type3(stream_file_bytearray, filename.c_str(), directory, dword_big_to_little_endian(stream_file_header->Offset));
+                break;
+            case UNKNOWN:
+                break;
+            default:
+                break;
+            }
+            // End of unpacking-only code.
+
             // close file and free byte array memory.
+            dont_unpack_loc:        
             free(stream_file_header);
             free(stream_file_bytearray);
         }

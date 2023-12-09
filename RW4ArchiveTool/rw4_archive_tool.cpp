@@ -170,6 +170,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         lvc2.iSubItem = 4;
         ListView_InsertColumn(hwndListView2, 4, &lvc2);
 
+        lvc2.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+        lvc2.cx = 100;
+        lvc2.pszText = (LPWSTR)L"TOC Offset";
+        lvc2.iSubItem = 5;
+        ListView_InsertColumn(hwndListView2, 5, &lvc2);
+
         // Subclass the second ListView control
         SubclassListView(hwndListView2);
 

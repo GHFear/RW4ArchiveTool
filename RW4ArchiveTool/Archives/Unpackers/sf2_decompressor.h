@@ -10,8 +10,8 @@
 namespace sf
 {
     struct SFCompressionType2 {
-        DWORD HeaderCompressedSize;
         DWORD HeaderDecompressedSize;
+        DWORD HeaderCompressedSize;
         DWORD HeaderCompressedBool;
         DWORD Unknown1;
         DWORD Unknown2[4];
@@ -23,7 +23,7 @@ namespace sf
         DWORD Unkonwn5[4];
     };
 
-    bool sf_decompress_type2_loop(FILE* file, DWORD HeaderCompressedBool, DWORD CompressedSize, DWORD DecompressedSize, char* filename, char* stream_file_bytearray, uint32_t* stream_index, const wchar_t* directory)
+    bool sf_decompress_type2_loop(FILE* file, DWORD HeaderCompressedBool, DWORD CompressedSize, DWORD DecompressedSize, const char* filename, char* stream_file_bytearray, uint32_t* stream_index, const wchar_t* directory)
     {
         std::wstring concatenatedText = directory;
         concatenatedText += ConvertCharToWchar(filename);
@@ -90,7 +90,7 @@ namespace sf
         return false;
     }
 
-    void sf_decompress_type2(char* stream_file_bytearray, char* filename, const wchar_t* directory, uint32_t sf_header_size)
+    void sf_decompress_type2(char* stream_file_bytearray, const char* filename, const wchar_t* directory, uint32_t sf_header_size)
     {
         // Declare local variables.
         SFCompressionType2 compressionheader;
