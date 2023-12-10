@@ -8,9 +8,10 @@
 -BIG ("EB" Archive) <br>
 -BIG ("BIG4" Archive) <br>
 -BIG ("BIGF" Archive) <br>
--PSG (Arena File) <br>
--RX2 (Arena File) <br>
--RG2 (Arena File) <br>
+-PSG (Playstation 3 Arena File) <br>
+-RPSGL (Playstation 3 Arena File) <br>
+-RX2 (Xbox 360 Arena File) <br>
+-RG2 (Nintendo Wii Arena File) <br>
 
 **(Compression types supported)** <br>
 -None <br>
