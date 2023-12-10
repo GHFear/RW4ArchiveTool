@@ -285,7 +285,16 @@ LRESULT CALLBACK SubclassListViewProc(HWND hwnd, UINT message, WPARAM wParam, LP
                 std::wstring fileExtension = filePath.substr(lastDot + 1);
 
                 // Check if the file extension is ".psf"
-                if (fileExtension != L"psf" && fileExtension != L"wsf" && fileExtension != L"xsf" && fileExtension != L"big" && fileExtension != L"rx2" && fileExtension != L"psg" && fileExtension != L"rg2")
+                if (
+                    fileExtension != L"psf" 
+                    && fileExtension != L"wsf" 
+                    && fileExtension != L"xsf" 
+                    && fileExtension != L"big" 
+                    && fileExtension != L"rx2" 
+                    && fileExtension != L"psg" 
+                    && fileExtension != L"rg2" 
+                    && fileExtension != L"rpsgl"
+                    )
                 {
                     // Skip files with invalid extension
                     continue;
@@ -406,7 +415,7 @@ void OpenFileAndLoadBuffer(HWND hwnd) {
     ofn.hwndOwner = hwnd;
     ofn.lpstrFile = file;
     ofn.nMaxFile = 10240;
-    ofn.lpstrFilter = TEXT("EA Skate Archives\0*.xsf;*.psf;*.wsf;*.big;*.rx2;*.psg;*.rg2\0\0");
+    ofn.lpstrFilter = TEXT("EA Skate Archives\0*.xsf;*.psf;*.wsf;*.big;*.rx2;*.psg;*.rg2;*.rpsgl\0\0");
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;
