@@ -2,9 +2,9 @@
 *RW4 Archive parser, unpacker, decompressor and (packer coming soon).* <br>
 
 **Supports:** <br>
--XSF (Compression Type 1, 2, 3) <br>
--PSF (Compression Type 1, 2, 3) <br>
--WSF (Compression Type 1, 2, 3) <br>
+-XSF (Xbox 360 StreamFile) <br>
+-PSF (Playstation 3 StreamFile) <br>
+-WSF (Nintendo Wii StreamFile) <br>
 -BIG ("EB" Archive) <br>
 -BIG ("BIG4" Archive) <br>
 -BIG ("BIGF" Archive) <br>
