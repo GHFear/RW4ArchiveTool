@@ -72,3 +72,28 @@ std::pair<std::wstring, std::vector<std::wstring>> ParseFilePath(const std::wstr
         return std::make_pair(L"", std::vector<std::wstring>{filePath});
     }
 }
+
+// Function to get the filename without extension from a wchar_t filepath
+const wchar_t* GetFilenameWithoutExtension(const wchar_t* filepath) {
+    // Find the last path separator (backslash) in the filepath
+    const wchar_t* lastBackslash = wcsrchr(filepath, L'\\');
+
+    // Find the last dot ('.') character after the last path separator
+    const wchar_t* lastDot = wcsrchr(lastBackslash != nullptr ? lastBackslash : filepath, L'.');
+
+    // Check if a dot was found and it is not the last character
+    if (lastDot != nullptr && lastDot[1] != L'\0') {
+        // Calculate the length of the filename without extension
+        size_t length = lastDot - (lastBackslash != nullptr ? lastBackslash + 1 : filepath);
+
+        // Allocate memory for the result and copy the filename without extension
+        wchar_t* result = new wchar_t[length + 1];
+        wmemcpy(result, lastBackslash != nullptr ? lastBackslash + 1 : filepath, length);
+        result[length] = L'\0';
+
+        return result;
+    }
+
+    // No extension found, return the whole filename
+    return lastBackslash != nullptr ? lastBackslash + 1 : filepath;
+}

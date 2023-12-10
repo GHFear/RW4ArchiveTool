@@ -5,6 +5,7 @@
 #include "Archives/Parsers/sf_parser.h"
 #include "Archives/Parsers/big_eb_parser.h"
 #include "Archives/Parsers/big4_parser.h"
+#include "Archives/Parsers/Arena_Parser.h"
 #include "Tools/Program/ProgramHandlers.h"
 #include "Windows/FindWindow.h"
 
@@ -310,6 +311,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     case SFIL:
                         parsed_archive = sf::parse_sf_archive(FullPath.c_str(), FileDirectory, false);
                         break;
+                    case ARENA:
+                        parsed_archive = arena::parse_arena_filepackage(FullPath.c_str(), FileDirectory, false);
+                        break;
                     case UNKNOWNARCHIVE:
                         break;
                     default:
@@ -385,6 +389,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     break;
                 case SFIL:
                     sf::parse_sf_archive(FullPath.c_str(), FileDirectory, true);
+                    MessageBox(hwnd, L"Archive was unpacked successfully!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    break;
+                case ARENA:
+                    arena::parse_arena_filepackage(FullPath.c_str(), FileDirectory, true);
                     MessageBox(hwnd, L"Archive was unpacked successfully!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
                     break;
                 case UNKNOWNARCHIVE:

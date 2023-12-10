@@ -6,6 +6,7 @@ enum ARCHIVETYPE {
     BIG_EB,
     SFIL,
     BIG4,
+    ARENA,
     UNKNOWNARCHIVE
 };
 

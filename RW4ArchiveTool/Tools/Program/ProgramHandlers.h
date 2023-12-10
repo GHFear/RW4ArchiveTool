@@ -189,6 +189,11 @@ void UpdateArchiveView(HWND hwnd, wchar_t* file)
             ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(archive_size.c_str()));
             ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(selected_archives.first.c_str()));
             break;
+        case ARENA:
+            ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(selected_archives.second[i].c_str()));
+            ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(archive_size.c_str()));
+            ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(selected_archives.first.c_str()));
+            break;
         case SFIL:
         {
             SFArchiveHeaderNotDynamic parsed_sf_header = sf::parse_sfa_header(FullPath.c_str());
@@ -280,7 +285,7 @@ LRESULT CALLBACK SubclassListViewProc(HWND hwnd, UINT message, WPARAM wParam, LP
                 std::wstring fileExtension = filePath.substr(lastDot + 1);
 
                 // Check if the file extension is ".psf"
-                if (fileExtension != L"psf" && fileExtension != L"wsf" && fileExtension != L"xsf" && fileExtension != L"big")
+                if (fileExtension != L"psf" && fileExtension != L"wsf" && fileExtension != L"xsf" && fileExtension != L"big" && fileExtension != L"rx2" && fileExtension != L"psg" && fileExtension != L"rg2")
                 {
                     // Skip files with invalid extension
                     continue;
@@ -346,6 +351,11 @@ LRESULT CALLBACK SubclassListViewProc(HWND hwnd, UINT message, WPARAM wParam, LP
                 ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(archive_size.c_str()));
                 ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(directories[i].c_str()));
                 break;
+            case ARENA:
+                ListView_SetItemText(hwndListView, i, 0, const_cast<LPWSTR>(filenames[i].c_str()));
+                ListView_SetItemText(hwndListView, i, 1, const_cast<LPWSTR>(archive_size.c_str()));
+                ListView_SetItemText(hwndListView, i, 2, const_cast<LPWSTR>(directories[i].c_str()));
+                break;
             case SFIL:
             {
                 SFArchiveHeaderNotDynamic parsed_sf_header = sf::parse_sfa_header(FullPath.c_str());
@@ -396,7 +406,7 @@ void OpenFileAndLoadBuffer(HWND hwnd) {
     ofn.hwndOwner = hwnd;
     ofn.lpstrFile = file;
     ofn.nMaxFile = 10240;
-    ofn.lpstrFilter = TEXT("EA Skate Archives\0*.xsf;*.psf;*.wsf;*.big\0All Files\0*.*\0\0");
+    ofn.lpstrFilter = TEXT("EA Skate Archives\0*.xsf;*.psf;*.wsf;*.big;*.rx2;*.psg;*.rg2\0\0");
     ofn.nFilterIndex = 1;
     ofn.lpstrFileTitle = NULL;
     ofn.nMaxFileTitle = 0;

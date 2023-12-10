@@ -143,6 +143,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Archives\Compression\refpack\refpackd.h" />
+    <ClInclude Include="Archives\Parsers\Arena_Parser.h" />
     <ClInclude Include="Archives\Parsers\big4_parser.h" />
     <ClInclude Include="Archives\Parsers\big_eb_parser.h" />
     <ClInclude Include="Archives\Parsers\magic_parser.h" />

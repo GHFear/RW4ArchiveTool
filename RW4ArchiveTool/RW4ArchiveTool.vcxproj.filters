@@ -57,6 +57,7 @@
     <ClInclude Include="Unspecified\Global.h">
       <Filter>Headers\Unspecified</Filter>
     </ClInclude>
+    <ClInclude Include="Archives\Parsers\Arena_Parser.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\RW4ArchiveTool.ico">

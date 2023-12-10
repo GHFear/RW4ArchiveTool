@@ -15,6 +15,7 @@ namespace magic
     const uint32_t BIG4_ID = 0x42494734;
     const uint32_t BIGEB_V3_ID = 0x45420003;
     const uint32_t SF_ID = 0x5346494C;
+    const uint32_t Arena_ID = 0x89525734;
 
     // Function to decide which archive we're dealing with (Doesn't decompress)
     ARCHIVETYPE magic_parser(const wchar_t* archiveName) {
@@ -46,6 +47,9 @@ namespace magic
             break;
         case SF_ID:
             type = SFIL;
+            break;
+        case Arena_ID:
+            type = ARENA;
             break;
         default:
             type = UNKNOWNARCHIVE;

@@ -25,8 +25,8 @@ namespace sf
 
     bool sf_decompress_type2_loop(FILE* file, DWORD HeaderCompressedBool, DWORD CompressedSize, DWORD DecompressedSize, const char* filename, char* stream_file_bytearray, uint32_t* stream_index, const wchar_t* directory)
     {
-        std::wstring concatenatedText = directory;
-        concatenatedText += ConvertCharToWchar(filename);
+        std::wstring Filedirectory = directory;
+        Filedirectory += ConvertCharToWchar(filename);
 
         if (dword_big_to_little_endian(HeaderCompressedBool) == 0)
         {
@@ -34,7 +34,7 @@ namespace sf
             uint64_t out_buffer_size = dword_big_to_little_endian(DecompressedSize);
             char* current_file_location = stream_file_bytearray + *stream_index;
 
-            if (_wfopen_s(&file, concatenatedText.c_str(), L"ab+") != 0)
+            if (_wfopen_s(&file, Filedirectory.c_str(), L"ab+") != 0)
             {
                 fprintf(stderr, "Error opening file.\n");
                 return false;
@@ -65,7 +65,7 @@ namespace sf
             std::vector<uint8_t> decompression_out_buffer_vector = refpack::decompress(decompression_in_buffer_vector);
 
             // Write (append) to file.
-            if (_wfopen_s(&file, concatenatedText.c_str(), L"ab+") != 0)
+            if (_wfopen_s(&file, Filedirectory.c_str(), L"ab+") != 0)
             {
                 fprintf(stderr, "Error opening file.\n");
                 return false;
@@ -100,8 +100,8 @@ namespace sf
         uint32_t* stream_index_ptr = &stream_index;
         FILE* file = nullptr;
 
-        std::wstring concatenatedText = directory;
-        concatenatedText += ConvertCharToWchar(filename);
+        std::wstring Filedirectory = directory;
+        Filedirectory += ConvertCharToWchar(filename);
 
         // Fill compressionheader struct with important information from the SF compression header.
         std::memcpy(&compressionheader, stream_file_bytearray + sf_header_size + 0, decompression_header_size);
@@ -109,7 +109,7 @@ namespace sf
         *stream_index_ptr = sf_header_size + decompression_header_size;
 
         // Open the file in write mode to overwrite or create an empty file
-        if (_wfopen_s(&file, concatenatedText.c_str(), L"wb+") != 0) {
+        if (_wfopen_s(&file, Filedirectory.c_str(), L"wb+") != 0) {
             fprintf(stderr, "Error opening file.\n");
         }
 

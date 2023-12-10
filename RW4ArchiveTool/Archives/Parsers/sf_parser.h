@@ -15,6 +15,10 @@ namespace sf
         long sfa_size = 0;
         long start_of_sfa = 0;
         uint32_t size_of_sfa_header = 0;
+        std::wstring streamfilename_directory = GetFilenameWithoutExtension(archiveName);
+        std::wstring out_directory = directory;
+        out_directory += streamfilename_directory;
+        out_directory += L"\\";
         std::vector<Archive_Parse_Struct> parse_struct_vector = {};
 
         _wfopen_s(&archive, archiveName, L"rb");
@@ -40,6 +44,14 @@ namespace sf
         size_of_sfa_header = dword_big_to_little_endian(size_of_sfa_header);
         SFArchiveHeader* sfa_header = (SFArchiveHeader*)malloc(sizeof(*sfa_header) + (size_of_sfa_header - 32));
         fread(sfa_header, size_of_sfa_header, 1, archive);
+
+        // Attempt to create the directory
+        if (CreateDirectoryRecursively(out_directory.c_str())) {
+            wprintf(L"Directory created: %s\n", out_directory.c_str());
+        }
+        else {
+            wprintf(L"Failed to create directory or directory already exists: %s\n", out_directory.c_str());
+        }
 
         // Main unpacking loop.
         while (ftell(archive) < sfa_size)
@@ -114,13 +126,13 @@ namespace sf
             switch (dword_big_to_little_endian(sfa_header->StreamFormat))
             {
             case SF1:
-                sf_decompress_type1(stream_file_bytearray, filename.c_str(), *stream_file_header, directory, dword_big_to_little_endian(stream_file_header->Offset));
+                sf_decompress_type1(stream_file_bytearray, filename.c_str(), *stream_file_header, out_directory.c_str(), dword_big_to_little_endian(stream_file_header->Offset));
                 break;
             case SF2:
-                sf_decompress_type2(stream_file_bytearray, filename.c_str(), directory, dword_big_to_little_endian(stream_file_header->Offset));
+                sf_decompress_type2(stream_file_bytearray, filename.c_str(), out_directory.c_str(), dword_big_to_little_endian(stream_file_header->Offset));
                 break;
             case SF3:
-                sf_decompress_type3(stream_file_bytearray, filename.c_str(), directory, dword_big_to_little_endian(stream_file_header->Offset));
+                sf_decompress_type3(stream_file_bytearray, filename.c_str(), out_directory.c_str(), dword_big_to_little_endian(stream_file_header->Offset));
                 break;
             case UNKNOWN:
                 break;
