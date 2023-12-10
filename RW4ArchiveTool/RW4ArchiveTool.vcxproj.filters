@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="Archives\Compression\refpack\refpackd.h">
+      <Filter>Headers\Archives\Compression\Refpack</Filter>
+    </ClInclude>
+    <ClInclude Include="Tools\Paths\Paths.h">
+      <Filter>Headers\Tools\Paths</Filter>
+    </ClInclude>
+    <ClInclude Include="Tools\Program\ProgramHandlers.h">
+      <Filter>Headers\Tools\Program</Filter>
+    </ClInclude>
+    <ClInclude Include="rw4_archive_tool.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Tools\BETools.h">
+      <Filter>Headers\Archives\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Unpackers\sf1_decompressor.h">
+      <Filter>Headers\Archives\Unpackers</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Unpackers\sf2_decompressor.h">
+      <Filter>Headers\Archives\Unpackers</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Unpackers\sf3_decompressor.h">
+      <Filter>Headers\Archives\Unpackers</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Parsers\sf_parser.h">
+      <Filter>Headers\Archives\Parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Structs\SF_Structs.h">
+      <Filter>Headers\Archives\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\Resource.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\framework.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\targetver.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Parsers\big_eb_parser.h">
+      <Filter>Headers\Archives\Parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Parsers\big4_parser.h">
+      <Filter>Headers\Archives\Parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Parsers\magic_parser.h">
+      <Filter>Headers\Archives\Parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="Unspecified\FuncTimer.h" />
+    <ClInclude Include="Windows\FindWindow.h" />
+    <ClInclude Include="Zlib\Include\zlib-1.3\zlib.h">
+      <Filter>Headers\Archives\Compression\Zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="Unspecified\Global.h">
+      <Filter>Headers\Unspecified</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Parsers\Arena_Parser.h" />
+    <ClInclude Include="Zlib\Include\zlib-1.3\zconf.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Resources\RW4ArchiveTool.ico">
+      <Filter>Resources</Filter>
+    </Image>
+    <Image Include="Resources\small.ico">
+      <Filter>Resources</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{e53d1ec4-4925-4880-8d6e-64f71cf5ad5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{058d91da-0980-4f32-86b1-fa9d7420d3b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Archives">
+      <UniqueIdentifier>{59b6e8fa-38f3-4715-9609-3829e223e835}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Archives\Parsers">
+      <UniqueIdentifier>{58c62c62-b1b0-48db-b06f-e98c9d629b4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Archives\Unpackers">
+      <UniqueIdentifier>{317bde63-a366-4fd2-ab2f-93b236294dde}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Archives\Tools">
+      <UniqueIdentifier>{75917f23-cc48-4204-a6ac-b4bba0129d9b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Archives\Compression">
+      <UniqueIdentifier>{a56f336f-e81f-43ce-b3d5-6462246ae998}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Archives\Compression\Refpack">
+      <UniqueIdentifier>{fac41566-2936-450a-a7cf-277ab4bb0ba0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Tools">
+      <UniqueIdentifier>{165e277a-2fc8-414c-bd08-027c79d7f25f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Tools\Program">
+      <UniqueIdentifier>{75c8a209-ebb6-434f-875b-c8ef4e4d39e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Tools\Paths">
+      <UniqueIdentifier>{54ed90f0-799d-44ce-b7c3-a4e07164a259}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Archives\Structs">
+      <UniqueIdentifier>{50ec6d5b-fa25-49fa-aa7e-95dfbbda9f3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Unspecified">
+      <UniqueIdentifier>{959bf69a-1807-4ccc-a53b-d3104ecce2c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{8d366b16-574a-4d89-8c54-962022002fce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Archives\Compression\Zlib">
+      <UniqueIdentifier>{83532fb5-417a-4a9d-acfc-993a74e04de5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resources\RW4ArchiveTool.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="rw4_archive_tool.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
