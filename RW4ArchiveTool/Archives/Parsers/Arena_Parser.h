@@ -604,7 +604,7 @@ namespace arena
                 Parsed_Archive_Struct.filename = "UNKNOWN_TYPE";
             }
 
-            if (file_type == dword_big_to_little_endian(RWOBJECTTYPE_BASERESOURCE))
+            if (offset == 0)
             {
                 _fseeki64(archive, 68, SEEK_SET);
                 uint32_t local_size = 0;
