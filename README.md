@@ -2,16 +2,16 @@
 *RW4 Archive parser, unpacker, decompressor and (packer coming soon).* <br>
 
 **Supports:** <br>
--XSF (Xbox 360 StreamFile) <br>
--PSF (Playstation 3 StreamFile) <br>
--WSF (Nintendo Wii StreamFile) <br>
--BIG ("EB" Archive) <br>
--BIG ("BIG4" Archive) <br>
--BIG ("BIGF" Archive) <br>
--PSG (Playstation 3 Arena File) <br>
--RPSGL (Playstation 3 Arena File) <br>
--RX2 (Xbox 360 Arena File) <br>
--RG2 (Nintendo Wii Arena File) <br>
+-XSF ( Xbox 360 StreamFile ) <br>
+-PSF ( Playstation 3 StreamFile ) <br>
+-WSF ( Nintendo Wii StreamFile ) <br>
+-BIG ( "EB" Archive ) <br>
+-BIG ( "BIG4" Archive ) <br>
+-BIG ( "BIGF" Archive ) <br>
+-PSG ( Playstation 3 Arena File ) <br>
+-RPSGL ( Playstation 3 Arena File ) <br>
+-RX2 ( Xbox 360 Arena File ) <br>
+-RG2 ( Nintendo Wii Arena File ) <br>
 
 **(Compression types supported)** <br>
 -None <br>
