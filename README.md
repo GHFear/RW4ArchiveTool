@@ -8,10 +8,9 @@
 -BIG ("EB" Archive) <br>
 -BIG ("BIG4" Archive) <br>
 -BIG ("BIGF" Archive) <br>
-
-**Working on:** <br>
 -PSG (Arena File) <br>
 -RX2 (Arena File) <br>
+-RG2 (Arena File) <br>
 
 **(Compression types supported)** <br>
 -None <br>
