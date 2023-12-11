@@ -1,0 +1,115 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\Compression">
+      <UniqueIdentifier>{f0321beb-2e1f-4634-a8e5-6a5198a99e51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Tools">
+      <UniqueIdentifier>{7671b511-9ef3-4444-8c6b-89178ededb30}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Tools\Paths">
+      <UniqueIdentifier>{5ed30a77-7968-4e06-89f5-2eb3ff80daaa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Tools\Program">
+      <UniqueIdentifier>{9b5fb4b2-342a-4932-a427-46c1c001f25f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Parsers">
+      <UniqueIdentifier>{488ea016-e698-41c6-821b-506a3dcf7756}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Parsers\StreamFileParser">
+      <UniqueIdentifier>{16b3398d-bd09-4121-9c02-d808774bff4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Parsers\Structs">
+      <UniqueIdentifier>{70e433ea-7663-4c04-90ef-c1309b352e4f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Parsers\BigEndianTools">
+      <UniqueIdentifier>{acf5c80a-ca25-41bf-98d1-5a49a513af46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Parsers\Unpackers">
+      <UniqueIdentifier>{f0dfe66c-01f6-4c0b-809c-c8eb2097379e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Compression\refpack">
+      <UniqueIdentifier>{901f61ad-984b-419b-9a8e-a962c8f1d324}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rw4_archive_tool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Global.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Parsers\sf_header_parser.h">
+      <Filter>Header Files\Parsers</Filter>
+    </ClInclude>
+    <ClInclude Include="Parsers\StreamFileParser\sf_parser.h">
+      <Filter>Header Files\Parsers\StreamFileParser</Filter>
+    </ClInclude>
+    <ClInclude Include="Parsers\Structs\SF_Structs.h">
+      <Filter>Header Files\Parsers\Structs</Filter>
+    </ClInclude>
+    <ClInclude Include="Parsers\BigEndianTools\BETools.h">
+      <Filter>Header Files\Parsers\BigEndianTools</Filter>
+    </ClInclude>
+    <ClInclude Include="Parsers\Unpackers\sf1_decompressor.h">
+      <Filter>Header Files\Parsers\Unpackers</Filter>
+    </ClInclude>
+    <ClInclude Include="Parsers\Unpackers\sf2_decompressor.h">
+      <Filter>Header Files\Parsers\Unpackers</Filter>
+    </ClInclude>
+    <ClInclude Include="Parsers\Unpackers\sf3_decompressor.h">
+      <Filter>Header Files\Parsers\Unpackers</Filter>
+    </ClInclude>
+    <ClInclude Include="Compression\refpack\refpackd.h">
+      <Filter>Header Files\Compression\refpack</Filter>
+    </ClInclude>
+    <ClInclude Include="Tools\Paths\Paths.h">
+      <Filter>Header Files\Tools\Paths</Filter>
+    </ClInclude>
+    <ClInclude Include="Tools\Program\ProgramHandlers.h">
+      <Filter>Header Files\Tools\Program</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="rw4_archive_tool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="RW4ArchiveTool.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="small.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="RW4ArchiveTool.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="RW4ArchiveTool.aps" />
+  </ItemGroup>
+</Project>
