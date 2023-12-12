@@ -25,11 +25,11 @@
 **Features I need to add:** <br>
 -Error handler that catches any errors and exits cleanly. 
 (Right now the tool is relying completely on the assumption that the file you give it isn't corrupt 
-and terrible corruption of data and memory could be a side effect of trying to load corrupted files)
--Settings menu where you can force parse type and do other important things like settings the different struct types and values manually.
--Open FileDialog to select output path when unpacking files.
--Multi-archive unpacking.
--Single file export.
+and terrible corruption of data and memory could be a side effect of trying to load corrupted files) <br>
+-Settings menu where you can force parse type and do other important things like settings the different struct types and values manually. <br>
+-Open FileDialog to select output path when unpacking files. <br>
+-Multi-archive unpacking. <br>
+-Single file export. <br>
 
 **List of games that this tool has been confirmed to work with:** <br>
 -Skate 1 | PS3 | Xbox 360 <br>
