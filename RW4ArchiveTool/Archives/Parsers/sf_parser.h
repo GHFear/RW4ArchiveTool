@@ -273,14 +273,16 @@ namespace sf
     }
 
     // Function to unpack files from a sf archive. (Doesn't decompress)
-    std::vector<Archive_Parse_Struct> parse_sf_archive(const wchar_t* archiveName, const wchar_t* directory, bool unpack) {
+    std::vector<Archive_Parse_Struct> parse_sf_archive(const wchar_t* archiveName, bool unpack) {
         // Declare local variables.
         FILE* archive = nullptr;
         long sf_collection_size = 0;
         long start_of_sf_collection = 0;
         uint32_t size_of_sfa_header = 0;
+        std::wstring wide_archiv_path = archiveName;
+        std::wstring file_directory = ParseFilePath(wide_archiv_path).first;
         std::wstring streamfilename_directory = GetFilenameWithoutExtension(archiveName);
-        std::wstring out_directory = directory;
+        std::wstring out_directory = file_directory;
         out_directory += streamfilename_directory + L"\\";
         std::vector<Archive_Parse_Struct> parse_struct_vector = {};
 

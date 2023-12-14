@@ -466,7 +466,7 @@ namespace big_eb
     }
 
     // Function to parse files from a big eb archive. (Doesn't decompress yet)
-    std::vector<Archive_Parse_Struct> parse_big_eb_archive(const wchar_t* archiveName, const wchar_t* directory, bool unpack) 
+    std::vector<Archive_Parse_Struct> parse_big_eb_archive(const wchar_t* archiveName, bool unpack) 
     {
 
         // Declare local variables.
@@ -542,6 +542,9 @@ namespace big_eb
         {
             // Declare local variables.
             Archive_Parse_Struct Parsed_Archive_Struct = {};
+
+            std::wstring wide_archiv_path = archiveName;
+            std::wstring directory = ParseFilePath(wide_archiv_path).first;
             std::wstring out_filepath = directory;
             std::wstring out_filedirectory = directory;
             

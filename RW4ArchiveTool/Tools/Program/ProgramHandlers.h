@@ -32,6 +32,35 @@ void UpdateWindowTitle(const std::wstring& fileName) {
     SetWindowText(hwndMain, windowTitle.c_str());
 }
 
+
+// Function to retrieve the path from a selected item in the ListView
+std::wstring GetPathFromListView(HWND hwndListView, int index) {
+
+    wchar_t Filename[256] = {};
+    wchar_t FileDirectory[256] = {};
+
+    ListView_GetItemText(hwndListView, index, 0, Filename, sizeof(Filename) / sizeof(Filename[0]));
+    ListView_GetItemText(hwndListView, index, 2, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
+
+    // Create file path wstring.
+    std::wstring FullPath = FileDirectory;
+    FullPath += Filename;
+
+    return FullPath;
+}
+
+// Function to retrieve paths from all selected items in the ListView
+std::vector<std::wstring> GetSelectedPaths(HWND hwndListView) {
+    std::vector<std::wstring> paths;
+
+    int index = -1;
+    while ((index = ListView_GetNextItem(hwndListView, index, LVNI_SELECTED)) != -1) {
+        paths.push_back(GetPathFromListView(hwndListView, index));
+    }
+
+    return paths;
+}
+
 DWORD GetFileSizeFromOpenFileName(HWND& hwnd, const std::wstring& directory, const std::wstring& filename) {
     std::wstring filePath = directory + filename;
 

@@ -80,7 +80,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         // Create a ListView to display file information
         hwndListView = CreateWindow(WC_LISTVIEW, NULL,
-            WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL,
+            WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT | LVS_SHOWSELALWAYS,
             0, 0, 0, 0, hwnd, (HMENU)ID_LIST_VIEW, GetModuleHandle(NULL), NULL);
 
         // Set the extended style
@@ -303,16 +303,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     switch (magic::magic_parser(FullPath.c_str()))
                     {
                     case BIG_EB:
-                        parsed_archive = big_eb::parse_big_eb_archive(FullPath.c_str(), FileDirectory, false);
+                        parsed_archive = big_eb::parse_big_eb_archive(FullPath.c_str(), false);
                         break;
                     case BIG4:
-                        parsed_archive = big4::parse_big4_archive(FullPath.c_str(), FileDirectory, false);
+                        parsed_archive = big4::parse_big4_archive(FullPath.c_str(), false);
                         break;
                     case SFIL:
-                        parsed_archive = sf::parse_sf_archive(FullPath.c_str(), FileDirectory, false);
+                        parsed_archive = sf::parse_sf_archive(FullPath.c_str(), false);
                         break;
                     case ARENA:
-                        parsed_archive = arena::parse_arena_filepackage(FullPath.c_str(), FileDirectory, false);
+                        parsed_archive = arena::parse_arena_filepackage(FullPath.c_str(), false);
                         break;
                     case UNKNOWNARCHIVE:
                         break;
@@ -364,36 +364,25 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
             break;
         case ID_ARCHIVEMENU_ITEM1:
         {
-            // Get the selected item text
-            int selectedItemIndex = ListView_GetNextItem(hwndListView, -1, LVNI_SELECTED);
-            if (selectedItemIndex != -1) {
-                wchar_t Filename[256] = {};
-                wchar_t FileDirectory[256] = {};
-                ListView_GetItemText(hwndListView, selectedItemIndex, 0, Filename, sizeof(Filename) / sizeof(Filename[0]));
-                ListView_GetItemText(hwndListView, selectedItemIndex, 2, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
+            // Get paths from all selected items
+            std::vector<std::wstring> selectedPaths = GetSelectedPaths(hwndListView);
 
-                // Create file path wstring.
-                std::wstring FullPath = FileDirectory;
-                FullPath += Filename;
-
+            // Now, selectedPaths vector contains the paths of all selected items in the ListView
+            for (const auto& path : selectedPaths) {
                 // Unpack type selector.
-                switch (magic::magic_parser(FullPath.c_str()))
+                switch (magic::magic_parser(path.c_str()))
                 {
                 case BIG_EB:
-                    big_eb::parse_big_eb_archive(FullPath.c_str(), FileDirectory, true);
-                    MessageBox(hwnd, L"Archive was unpacked successfully!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    big_eb::parse_big_eb_archive(path.c_str(), true);
                     break;
                 case BIG4:
-                    big4::parse_big4_archive(FullPath.c_str(), FileDirectory, true);
-                    MessageBox(hwnd, L"Archive was unpacked successfully!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    big4::parse_big4_archive(path.c_str(), true);
                     break;
                 case SFIL:
-                    sf::parse_sf_archive(FullPath.c_str(), FileDirectory, true);
-                    MessageBox(hwnd, L"Archive was unpacked successfully!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    sf::parse_sf_archive(path.c_str(), true);
                     break;
                 case ARENA:
-                    arena::parse_arena_filepackage(FullPath.c_str(), FileDirectory, true);
-                    MessageBox(hwnd, L"Archive was unpacked successfully!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    arena::parse_arena_filepackage(path.c_str(), true);
                     break;
                 case UNKNOWNARCHIVE:
                     MessageBox(hwnd, L"Archive is of unknown type!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
@@ -402,6 +391,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     break;
                 }
             }
+
+            MessageBox(hwnd, L"Archive was unpacked successfully!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
             break;
         }
         case ID_ARCHIVEMENU_ITEM2:

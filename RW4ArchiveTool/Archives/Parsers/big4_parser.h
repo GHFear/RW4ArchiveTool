@@ -128,7 +128,7 @@ namespace big4
     }
 
     // Function to unpack files from a big4 archive.
-    std::vector<Archive_Parse_Struct> parse_big4_archive(const wchar_t* archiveName, const wchar_t* directory, bool unpack) {
+    std::vector<Archive_Parse_Struct> parse_big4_archive(const wchar_t* archiveName, bool unpack) {
         // Declare local variables.
         FILE* archive = nullptr;
         std::vector<Archive_Parse_Struct> Archive_Parse_Struct_vector = {};
@@ -148,6 +148,8 @@ namespace big4
 
         for (size_t i = 0; i < big4_header.number_files; i++)
         {
+            std::wstring wide_archiv_path = archiveName;
+            std::wstring directory = ParseFilePath(wide_archiv_path).first;
             std::wstring full_out_filepath = directory;
             std::wstring full_out_file_directory = directory;
             Archive_Parse_Struct Parsed_Archive_Struct = {};

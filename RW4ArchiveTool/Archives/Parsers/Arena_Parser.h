@@ -523,7 +523,7 @@ namespace arena
     }
 
     // Function to unpack files from an Arena file package.
-    std::vector<Archive_Parse_Struct> parse_arena_filepackage(const wchar_t* archiveName, const wchar_t* directory, bool unpack) {
+    std::vector<Archive_Parse_Struct> parse_arena_filepackage(const wchar_t* archiveName, bool unpack) {
         // Declare local variables.
         FILE* archive = nullptr;
         FILE* file = nullptr;
@@ -553,6 +553,9 @@ namespace arena
         for (size_t i = 0; i < file_count; i++)
         {
             Archive_Parse_Struct Parsed_Archive_Struct = {};
+
+            std::wstring wide_archiv_path = archiveName;
+            std::wstring directory = ParseFilePath(wide_archiv_path).first;
             std::wstring file_directory = directory;
             file_directory += GetFilenameWithoutExtension(archiveName);
             std::wstring file_path = file_directory + L"\\";
