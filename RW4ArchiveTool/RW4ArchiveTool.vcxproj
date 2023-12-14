@@ -148,6 +148,7 @@
     <ClInclude Include="Archives\Parsers\big_eb_parser.h" />
     <ClInclude Include="Archives\Parsers\magic_parser.h" />
     <ClInclude Include="Archives\Tools\big_endian_tools.h" />
+    <ClInclude Include="Archives\IoTools\IoTools.h" />
     <ClInclude Include="Resources\framework.h" />
     <ClInclude Include="Archives\Structs\SF_Structs.h" />
     <ClInclude Include="rw4_archive_tool.h" />

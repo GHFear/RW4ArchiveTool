@@ -466,8 +466,9 @@ namespace big_eb
     }
 
     // Function to parse files from a big eb archive. (Doesn't decompress yet)
-    std::vector<Archive_Parse_Struct> parse_big_eb_archive(const wchar_t* archiveName, bool unpack) 
+    auto parse_big_eb_archive(const wchar_t* archiveName, bool unpack, int64_t selected_file_index)
     {
+        struct RESULT { std::vector<Archive_Parse_Struct>  parsed_info; bool success; };
 
         // Declare local variables.
         FILE* archive = nullptr;
@@ -482,8 +483,16 @@ namespace big_eb
         _wfopen_s(&archive, archiveName, L"rb");
         if (archive == NULL) {
             perror("Error opening archive");
-            return Archive_Parse_Struct_vector;
+            return RESULT{ Archive_Parse_Struct_vector , false };
         }
+
+        // Save start position.
+        uint64_t start_of_archive = _ftelli64(archive);
+
+        // Save archive size and go back to start position.
+        fseek(archive, 0, SEEK_END);
+        uint64_t archive_size = _ftelli64(archive);
+        fseek(archive, start_of_archive, SEEK_SET);
         
         // Read archive header and convert to little endian.
         fread(&archive_header, sizeof(archive_header), 1, archive);
@@ -496,6 +505,11 @@ namespace big_eb
         archive_header.FolderAmount = BigToLittleUINT(archive_header.FolderAmount);
         archive_header.ArchiveSize = BigToLittleUINT(archive_header.ArchiveSize);
         archive_header.FatSize = BigToLittleUINT(archive_header.FatSize);
+
+        if (archive_header.FileAmount > archive_size || archive_header.ArchiveSize > archive_size || archive_header.FatSize > archive_size)
+        {
+            return RESULT{ Archive_Parse_Struct_vector , false };
+        }
 
         // Set folder offset.
         folders_offset = archive_header.FileAmount;
@@ -516,6 +530,11 @@ namespace big_eb
             toc_index.size = BigToLittleUINT(toc_index.size);
             toc_index.hash1 = BigToLittleUINT(toc_index.hash1);
             toc_index.hash2 = BigToLittleUINT(toc_index.hash2);
+
+            if (toc_index.offset > archive_size || toc_index.compressed_size > archive_size || toc_index.size > archive_size)
+            {
+                return RESULT{ Archive_Parse_Struct_vector , false };
+            }
 
             if (!(archive_header.Flags & FLAG_64BITHASH))
             {
@@ -598,31 +617,46 @@ namespace big_eb
 
             _fseeki64(archive, offset_Vector[i], SEEK_SET); // Seek to file offset location.
 
+            bool full_archive_unpack = unpack && selected_file_index == -1; // Do a full archive unpack.
+            bool single_archive_unpack = unpack && selected_file_index == i; // Do a single file archive unpack.
+
             if (size_Vector[i] != 0)
             {                
                 if (chunkpack_id == "chunkref") // Chunkpacked file compressed with refpack.
                 {
                     strcpy_s(Parsed_Archive_Struct.ztype, "CHUNKREF");
-                    if (!unpack) { goto dont_unpack_loc; }
-                    if (chunkref_decompress(archive, out_filedirectory, out_filepath) != true)
+                    if (!unpack) 
+                    { 
+                        goto dont_unpack_loc; 
+                    }
+                    else if (full_archive_unpack || single_archive_unpack)
                     {
-                        failed_to_unpack_messagebox(filename);
+                        if (chunkref_decompress(archive, out_filedirectory, out_filepath) != true)
+                        {
+                            return RESULT{ Archive_Parse_Struct_vector , false };
+                        }
                     }
                 }
                 else if (chunkpack_id == "chunkzip") // Chunkpacked file compressed with zlib.
                 {
                     strcpy_s(Parsed_Archive_Struct.ztype, "CHUNKZIP");
-                    if (!unpack) { goto dont_unpack_loc; }
-                    if (chunkzip_decompress(archive, out_filedirectory, out_filepath) != true)
+                    if (!unpack)
                     {
-                        failed_to_unpack_messagebox(filename);
+                        goto dont_unpack_loc;
+                    }
+                    else if (full_archive_unpack || single_archive_unpack)
+                    {
+                        if (chunkzip_decompress(archive, out_filedirectory, out_filepath) != true)
+                        {
+                            return RESULT{ Archive_Parse_Struct_vector , false };
+                        }
                     }
                 }
                 else if (chunkpack_id == "chunklzx") // Chunkpacked file compressed with lzx.
                 {
                     strcpy_s(Parsed_Archive_Struct.ztype, "CHUNKLZX");
                     if (!unpack) { goto dont_unpack_loc; }
-                    failed_to_unpack_messagebox(filename);
+                    return RESULT{ Archive_Parse_Struct_vector , false };
                 }
                 else //Single file (can be uncompressed or compressed with refpack)
                 {
@@ -633,21 +667,31 @@ namespace big_eb
                     if (refpack_magic == 0x10FB) // Single file compressed with refpack
                     {
                         strcpy_s(Parsed_Archive_Struct.ztype, "REFPACK");
-                        if (!unpack) { goto dont_unpack_loc; }
-                        //Check if we could unpack successfully.
-                        if (unpack_refpack_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
+                        if (!unpack)
                         {
-                            failed_to_unpack_messagebox(filename);
+                            goto dont_unpack_loc;
+                        }
+                        else if (full_archive_unpack || single_archive_unpack)
+                        {
+                            if (unpack_refpack_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
+                            {
+                                return RESULT{ Archive_Parse_Struct_vector , false };
+                            }
                         }
                     }
                     else // Single file uncompressed
                     {
                         strcpy_s(Parsed_Archive_Struct.ztype, "NONE");
-                        if (!unpack) { goto dont_unpack_loc; }
-                        //Check if we could unpack successfully.
-                        if (unpack_uncompressed_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
+                        if (!unpack)
                         {
-                            failed_to_unpack_messagebox(filename);
+                            goto dont_unpack_loc;
+                        }
+                        else if (full_archive_unpack || single_archive_unpack)
+                        {
+                            if (unpack_uncompressed_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
+                            {
+                                return RESULT{ Archive_Parse_Struct_vector , false };
+                            }
                         }
                     }
                 }
@@ -655,10 +699,16 @@ namespace big_eb
             else
             {
                 strcpy_s(Parsed_Archive_Struct.ztype, "EMPTY FILE");
-                if (!unpack) { goto dont_unpack_loc; }
-                if (unpack_empty_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
+                if (!unpack)
                 {
-                    failed_to_unpack_messagebox(filename);
+                    goto dont_unpack_loc;
+                }
+                else if (full_archive_unpack || single_archive_unpack)
+                {
+                    if (unpack_empty_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
+                    {
+                        return RESULT{ Archive_Parse_Struct_vector , false };
+                    }
                 }
             }
 
@@ -669,6 +719,6 @@ namespace big_eb
 
         // Close the archive.
         fclose(archive);
-        return Archive_Parse_Struct_vector;
+        return RESULT{ Archive_Parse_Struct_vector , true };
     }
 }

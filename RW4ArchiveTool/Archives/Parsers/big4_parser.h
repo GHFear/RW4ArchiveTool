@@ -128,7 +128,10 @@ namespace big4
     }
 
     // Function to unpack files from a big4 archive.
-    std::vector<Archive_Parse_Struct> parse_big4_archive(const wchar_t* archiveName, bool unpack) {
+    auto parse_big4_archive(const wchar_t* archiveName, bool unpack, int64_t selected_file_index) {
+
+        struct RESULT { std::vector<Archive_Parse_Struct>  parsed_info; bool success; };
+
         // Declare local variables.
         FILE* archive = nullptr;
         std::vector<Archive_Parse_Struct> Archive_Parse_Struct_vector = {};
@@ -137,14 +140,27 @@ namespace big4
         _wfopen_s(&archive, archiveName, L"rb");
         if (archive == NULL) {
             perror("Error opening archive");
-            return Archive_Parse_Struct_vector;
+            return RESULT{ Archive_Parse_Struct_vector , false };
         }
+
+        // Save start position.
+        uint64_t start_of_archive = _ftelli64(archive);
+
+        // Save archive size and go back to start position.
+        fseek(archive, 0, SEEK_END);
+        uint64_t archive_size = _ftelli64(archive);
+        fseek(archive, start_of_archive, SEEK_SET);
 
         // Read header into struct.
         fread(&big4_header, sizeof(big4_header), 1, archive);
         big4_header.header_length = BigToLittleUINT(big4_header.header_length);
-        big4_header.length = BigToLittleUINT(big4_header.length);
+        //big4_header.length = BigToLittleUINT(big4_header.length); // This value is already little endian for some reason.
         big4_header.number_files = BigToLittleUINT(big4_header.number_files);
+
+        if (big4_header.header_length > archive_size || big4_header.length > archive_size || big4_header.number_files > archive_size)
+        {
+            return RESULT{ Archive_Parse_Struct_vector , false };
+        }
 
         for (size_t i = 0; i < big4_header.number_files; i++)
         {
@@ -164,6 +180,11 @@ namespace big4
             fread(&big4_fat, sizeof(big4_fat), 1, archive);
             big4_fat.offset = BigToLittleUINT(big4_fat.offset);
             big4_fat.size = BigToLittleUINT(big4_fat.size);
+
+            if (big4_fat.size > archive_size || big4_fat.offset > archive_size)
+            {
+                return RESULT{ Archive_Parse_Struct_vector , false };
+            }
             
             // Get filename length.
             size_t filename_length = 0;
@@ -192,25 +213,40 @@ namespace big4
             Parsed_Archive_Struct.filename = path.filename().string();
             Parsed_Archive_Struct.file_size = big4_fat.size;
             Parsed_Archive_Struct.file_offset = big4_fat.offset;
+
+            bool full_archive_unpack = unpack && selected_file_index == -1; // Do a full archive unpack.
+            bool single_archive_unpack = unpack && selected_file_index == i; // Do a single file archive unpack.
             
-           
             switch (compression_type)
             {
             case 0x10FB:
                 strcpy_s(Parsed_Archive_Struct.ztype, "REFPACK");
-                if (!unpack) { goto dont_unpack_loc; }
-                if (unpack_refpack_file(archive, big4_fat.size, full_out_file_directory, full_out_filepath) != true)
+                if (!unpack) 
+                { 
+                    goto dont_unpack_loc; 
+                }
+                else if (full_archive_unpack || single_archive_unpack)
                 {
-                    MessageBox(0, L"Compressed file couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    if (unpack_refpack_file(archive, big4_fat.size, full_out_file_directory, full_out_filepath) != true)
+                    {
+                        return RESULT{ Archive_Parse_Struct_vector , false };
+                    }
                 }
                 break;
             default:
                 strcpy_s(Parsed_Archive_Struct.ztype, "NONE");
-                if (!unpack) { goto dont_unpack_loc; }
-                if (unpack_uncompressed_file(archive, big4_fat.size, full_out_file_directory, full_out_filepath) != true)
-                {
-                    MessageBox(0, L"File couldn't be unpacked! \nClose any tool that has a handle to this archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                if (!unpack) 
+                { 
+                    goto dont_unpack_loc; 
                 }
+                else if (full_archive_unpack || single_archive_unpack)
+                {
+                    if (unpack_uncompressed_file(archive, big4_fat.size, full_out_file_directory, full_out_filepath) != true)
+                    {
+                        return RESULT{ Archive_Parse_Struct_vector , false };
+                    }
+                }
+                
                 break;
             }
 
@@ -221,6 +257,6 @@ namespace big4
         }
 
         fclose(archive);
-        return Archive_Parse_Struct_vector;
+        return RESULT{ Archive_Parse_Struct_vector , true };
     }
 }

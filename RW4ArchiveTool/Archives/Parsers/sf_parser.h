@@ -36,42 +36,31 @@ namespace sf
     };
 
     // StreamFile Decompression Type 1 (Refpack Compressed Single File)
-    void sf_decompress_type1(char* stream_file_bytearray, const char* filename, CollectionAsset streamfile_header, const wchar_t* directory, uint32_t sf_header_size)
+    bool sf_decompress_type1(char* stream_file_bytearray, const char* filename, CollectionAsset streamfile_header, const wchar_t* directory, uint32_t sf_header_size)
     {
-        std::wstring Filedirectory = directory;
+        std::wstring Filedirectory = directory; 
         Filedirectory += ConvertCharToWchar(filename);
 
         // Declare local variables.
-        size_t decompressed_size = 0;
         FILE* file = nullptr;
 
         // Open the file in write mode to overwrite or create an empty file
-        if (_wfopen_s(&file, Filedirectory.c_str(), L"wb+") == 0) {
-            if (file != nullptr) {
-                fclose(file);
-            }
-            else { OutputDebugStringA("Error opening file for writing.\n"); return; }
+        if (!IoTools::create_file(file, Filedirectory))
+        {
+            return false;
         }
-        else { OutputDebugStringA("Error opening file.\n"); return; }
-
+        
         // Decompress inbuffer to get decompressed out buffer and size.
         std::vector<uint8_t> decompression_in_buffer_vector(stream_file_bytearray + sf_header_size, (stream_file_bytearray + sf_header_size) + streamfile_header.Size);
         std::vector<uint8_t> decompression_out_buffer_vector = refpack::decompress(decompression_in_buffer_vector);
-        decompressed_size = decompression_out_buffer_vector.size();
 
         // Write (append) to file.
-        if (_wfopen_s(&file, Filedirectory.c_str(), L"ab+") == 0)
+        if (!IoTools::append_file(file, Filedirectory, (char*)decompression_out_buffer_vector.data(), decompression_out_buffer_vector.size()))
         {
-            if (file != nullptr) {
-                size_t bytesWritten = fwrite(decompression_out_buffer_vector.data(), sizeof(char), decompressed_size, file);
-                if (bytesWritten != decompressed_size) { OutputDebugStringA("Error writing to file.\n"); }
-                fclose(file);
-            }
-            else { OutputDebugStringA("Error opening file for append.\n"); return; }
+            return false;
         }
-        else { OutputDebugStringA("Error opening file.\n"); return; }
-
-        return;
+        
+        return true;
     }
 
     // StreamFile Decompression Type 2 (Refpack Compressed Arena Header and/or Body)
@@ -84,55 +73,41 @@ namespace sf
         {
             char* current_file_location = StreamFileBuffer + *StreamIndex;
 
-            if (_wfopen_s(&File, file_directory.c_str(), L"ab+") != 0)
+            // Write (append) to file.
+            if (!IoTools::append_file(File, file_directory, (char*)current_file_location, DecompressedSize))
             {
-                OutputDebugStringA("Error opening/writing to file.\n"); return false;
+                return false;
             }
 
-            if (File != nullptr) {
-                size_t bytes_written = fwrite(current_file_location, sizeof(char), DecompressedSize, File);
-                if (bytes_written != DecompressedSize) {
-                    OutputDebugStringA("Error opening/writing to file.\n"); return false;
-                }
-                fclose(File);
+            return true;
+        }
+        else if (IsCompressed == 1)
+        {
+            // Decompress inbuffer to get decompressed out buffer and size.
+            std::vector<uint8_t> decompression_in_buffer_vector(StreamFileBuffer + *StreamIndex, StreamFileBuffer + *StreamIndex + CompressedSize);
+            std::vector<uint8_t> decompression_out_buffer_vector = refpack::decompress(decompression_in_buffer_vector); 
+
+            if (decompression_out_buffer_vector.size() != DecompressedSize) // Check if actual decompressed size is the same as the expect decompressed size.
+            {
+                return false;
             }
-            else {
-                OutputDebugStringA("Error opening/writing to file.\n"); return false;
+
+            // Write (append) to file.
+            if (!IoTools::append_file(File, file_directory, (char*)decompression_out_buffer_vector.data(), decompression_out_buffer_vector.size()))
+            {
+                return false;
             }
 
             return true;
         }
         else
         {
-            // Decompress inbuffer to get decompressed out buffer and size.
-            std::vector<uint8_t> decompression_in_buffer_vector(StreamFileBuffer + *StreamIndex, StreamFileBuffer + *StreamIndex + CompressedSize);
-            std::vector<uint8_t> decompression_out_buffer_vector = refpack::decompress(decompression_in_buffer_vector);
-
-            // Write (append) to file.
-            if (_wfopen_s(&File, file_directory.c_str(), L"ab+") != 0)
-            {
-                OutputDebugStringA("Error opening/writing to file.\n"); return false;
-            }
-
-            if (File != nullptr) {
-                size_t bytes_written = fwrite(decompression_out_buffer_vector.data(), sizeof(char), DecompressedSize, File);
-                if (bytes_written != DecompressedSize) {
-                    OutputDebugStringA("Error opening/writing to file.\n"); return false;
-                }
-                fclose(File);
-            }
-            else {
-                OutputDebugStringA("Error opening/writing to file.\n"); return false;
-            }
-
-            return true;
+            return false;
         }
-
-        return false;
     }
 
     // StreamFile Decompression Type 2 (Refpack Compressed Arena Header and/or Body)
-    void sf_decompress_type2(char* StreamFileBuffer, const char* Filename, const wchar_t* Directory, uint32_t StreamFileHeaderSize)
+    bool sf_decompress_type2(char* StreamFileBuffer, const char* Filename, const wchar_t* Directory, uint32_t StreamFileHeaderSize)
     {
         // Declare local variables.
         SFCompressionType2 compressionheader = {};
@@ -157,17 +132,14 @@ namespace sf
         
         // Open the file in write mode to overwrite or create an empty file
         FILE* file = nullptr;
-        if (_wfopen_s(&file, file_directory.c_str(), L"wb+") == 0) {
-            if (file != nullptr) {
-                fclose(file);
-            }
-            else { OutputDebugStringA("Error opening/writing to file.\n"); return; }
-        } 
-        else { OutputDebugStringA("Error opening/writing to file.\n"); return; }
+        if (!IoTools::create_file(file, file_directory))
+        {
+            return false;
+        }
 
         if (compressionheader.HeaderCompressedSize != 0 || compressionheader.HeaderDecompressedSize != 0)
         {
-            sf_decompress_type2_loop(
+            if (!sf_decompress_type2_loop(
                 file,
                 compressionheader.HeaderCompressedBool,
                 compressionheader.HeaderCompressedSize,
@@ -175,14 +147,17 @@ namespace sf
                 Filename,
                 StreamFileBuffer,
                 stream_index_ptr,
-                Directory);
+                Directory))
+            {
+                return false;
+            }
         }
 
-        stream_index += compressionheader.HeaderCompressedSize;
+        stream_index += compressionheader.HeaderCompressedSize; // Move stream index forward the size of the first (arena header) chunk.
 
         if (compressionheader.BodyCompressedSize != 0 || compressionheader.BodyDecompressedSize != 0)
         {
-            sf_decompress_type2_loop(
+            if (!sf_decompress_type2_loop(
                 file,
                 compressionheader.BodyCompressedBool,
                 compressionheader.BodyCompressedSize,
@@ -190,36 +165,38 @@ namespace sf
                 Filename,
                 StreamFileBuffer,
                 stream_index_ptr,
-                Directory);
+                Directory))
+            {
+                return false;
+            }
         }
 
-        return;
+        return true;
     }
 
     // StreamFile Decompression Type 3 (Arena Chunks Individually Compressed With Refpack)
-    void sf_decompress_type3(char* stream_file_bytearray, const char* filename, const wchar_t* directory, uint32_t sf_header_size)
+    bool sf_decompress_type3(char* stream_file_bytearray, const char* filename, const wchar_t* directory, uint32_t sf_header_size)
     {
         std::wstring Filedirectory = directory;
         Filedirectory += ConvertCharToWchar(filename);
 
         // Declare local variables.
         SFCompressionType3 compressionheader;
-        size_t decompressed_size = 0;
         uint64_t stream_index = 0;
         FILE* file = nullptr;
 
         // Fill compressionheader struct with important information from the SF compression header.
         std::memcpy(&compressionheader, stream_file_bytearray + sf_header_size, 32);
+        compressionheader.CompressionHeaderSize = BigToLittleUINT(compressionheader.CompressionHeaderSize);
         compressionheader.AmountCompressedChunks = BigToLittleUINT(compressionheader.AmountCompressedChunks);
         compressionheader.CompressionBool = BigToLittleUINT(compressionheader.CompressionBool);
-        compressionheader.CompressionHeaderSize = BigToLittleUINT(compressionheader.CompressionHeaderSize);
         compressionheader.Unknown1 = BigToLittleUINT(compressionheader.Unknown1);
         compressionheader.Unknown2 = BigToLittleUINT(compressionheader.Unknown2);
         compressionheader.Unknown3 = BigToLittleUINT(compressionheader.Unknown3);
         compressionheader.Unknown4 = BigToLittleUINT(compressionheader.Unknown4);
         compressionheader.Unknown5 = BigToLittleUINT(compressionheader.Unknown5);
 
-        stream_index = sf_header_size + 32;
+        stream_index = (uint64_t)sf_header_size + 32;
 
         // Create the CompressedBlockSizes vector.
         for (size_t i = 0; i < (compressionheader.CompressionHeaderSize - 32) / 4; i++)
@@ -232,13 +209,10 @@ namespace sf
         }
 
         // Open the file in write mode to overwrite or create an empty file
-        if (_wfopen_s(&file, Filedirectory.c_str(), L"wb+") == 0) {
-            if (file != nullptr) {
-                fclose(file);
-            }
-            else { OutputDebugStringA("Error opening/writing to file.\n"); }
+        if (!IoTools::create_file(file, Filedirectory))
+        {
+            return false;
         }
-        else { OutputDebugStringA("Error opening/writing to file.\n"); }
 
         // Unpack loop
         for (size_t i = 0; i < compressionheader.AmountCompressedChunks; i++)
@@ -249,47 +223,38 @@ namespace sf
             // Decompress inbuffer to get decompressed out buffer and size.
             std::vector<uint8_t> decompression_in_buffer_vector(stream_file_bytearray + stream_index, (stream_file_bytearray + stream_index) + decompression_in_buffer_size);
             std::vector<uint8_t> decompression_out_buffer_vector = refpack::decompress(decompression_in_buffer_vector);
-            decompressed_size = decompression_out_buffer_vector.size();
 
             // Write (append) to file.
-            if (_wfopen_s(&file, Filedirectory.c_str(), L"ab+") == 0)
+            if (!IoTools::append_file(file, Filedirectory, (char*)decompression_out_buffer_vector.data(), decompression_out_buffer_vector.size()))
             {
-                if (file != nullptr) {
-                    size_t bytesWritten = fwrite(decompression_out_buffer_vector.data(), sizeof(char), decompressed_size, file);
-                    if (bytesWritten != decompressed_size) {
-                        OutputDebugStringA("Error opening/writing to file.\n");
-                    }
-                    fclose(file);
-                }
-                else { OutputDebugStringA("Error opening/writing to file.\n"); }
+                return false;
             }
-            else { OutputDebugStringA("Error opening/writing to file.\n"); }
 
             // Move one compressed chunk forward
             stream_index += decompression_in_buffer_size;
         }
 
-        return;
+        return true;
     }
 
     // Function to unpack files from a sf archive. (Doesn't decompress)
-    std::vector<Archive_Parse_Struct> parse_sf_archive(const wchar_t* archiveName, bool unpack) {
+    auto parse_sf_archive(std::wstring archiveName, bool unpack, int64_t selected_file_index) {
+
+        struct RESULT { std::vector<Archive_Parse_Struct>  parsed_info; bool success; };
+
         // Declare local variables.
+        std::vector<Archive_Parse_Struct> Archive_Parse_Struct_vector = {};
         FILE* archive = nullptr;
         long sf_collection_size = 0;
         long start_of_sf_collection = 0;
         uint32_t size_of_sfa_header = 0;
-        std::wstring wide_archiv_path = archiveName;
-        std::wstring file_directory = ParseFilePath(wide_archiv_path).first;
-        std::wstring streamfilename_directory = GetFilenameWithoutExtension(archiveName);
-        std::wstring out_directory = file_directory;
-        out_directory += streamfilename_directory + L"\\";
-        std::vector<Archive_Parse_Struct> parse_struct_vector = {};
+        std::wstring streamfilename_directory = GetFilenameWithoutExtension(archiveName.c_str());
+        std::wstring out_directory = ParseFilePath(archiveName).first + streamfilename_directory + L"\\";
 
-        _wfopen_s(&archive, archiveName, L"rb");
+        _wfopen_s(&archive, archiveName.c_str(), L"rb");
         if (archive == NULL) {
             perror("Error opening archive");
-            return parse_struct_vector;
+            return RESULT{ Archive_Parse_Struct_vector , false };
         }
 
         // Save start position.
@@ -308,6 +273,12 @@ namespace sf
 
         // Read SF Archive header.
         SFArchiveHeader* sfa_header = (SFArchiveHeader*)malloc(sizeof(*sfa_header) + (size_of_sfa_header - 32));
+        if (sfa_header == NULL)
+        {
+            fclose(archive);
+            free(sfa_header);
+            return RESULT{ Archive_Parse_Struct_vector , false };
+        }
         fread(sfa_header, size_of_sfa_header, 1, archive);
         sfa_header->NumCollections = BigToLittleUINT(sfa_header->NumCollections);
         sfa_header->Offset = BigToLittleUINT(sfa_header->Offset);
@@ -327,6 +298,7 @@ namespace sf
         }
 
         // Main unpacking loop.
+        uint64_t loop_index = 0;
         while (ftell(archive) < sf_collection_size)
         {
             // Declare local variables.
@@ -348,10 +320,30 @@ namespace sf
             // Read SF Header.
             streamfile_header_size = BigToLittleUINT(streamfile_header_size);
             CollectionAsset* stream_file_header = (CollectionAsset*)malloc(sizeof(*stream_file_header) + (streamfile_header_size - 20));
+            if (stream_file_header == NULL)
+            {
+                fclose(archive);
+                free(sfa_header);
+                free(stream_file_header);
+                return RESULT{ Archive_Parse_Struct_vector , false };
+            }
             fread(stream_file_header, streamfile_header_size, 1, archive);
             stream_file_header->Stride = BigToLittleUINT(stream_file_header->Stride);
             stream_file_header->Offset = BigToLittleUINT(stream_file_header->Offset);
             stream_file_header->Size = BigToLittleUINT(stream_file_header->Size);
+
+            // Check for invalid values.
+            if (
+                stream_file_header->Offset > sf_collection_size 
+                || stream_file_header->Size > sf_collection_size 
+                || stream_file_header->Stride > sf_collection_size 
+                || stream_file_header->Size > stream_file_header->Stride
+                )
+            {
+                free(sfa_header);
+                free(stream_file_header);
+                return RESULT{ Archive_Parse_Struct_vector , false };
+            }
 
             // Set stream file block size
             stream_file_size = stream_file_header->Stride;
@@ -359,18 +351,27 @@ namespace sf
             // Set the filename
             bytearray_to_hexstring(stream_file_header->ID, sizeof(stream_file_header->ID), char_filename);
             filename = char_filename;
-            const wchar_t* file_extension = GetFileExtension(archiveName);
-
+            const wchar_t* file_extension = GetFileExtension(archiveName.c_str());
 
             // Add to parse struct vector
             parse_struct.filename = filename;
             parse_struct.file_size = stream_file_size;
             parse_struct.file_offset = streamfile_startposition;
             parse_struct.toc_offset = streamfile_startposition;
-            parse_struct_vector.push_back(parse_struct);
+            // Check for invalid values.
+            if (parse_struct.file_size > sf_collection_size || parse_struct.file_offset > sf_collection_size || parse_struct.toc_offset > sf_collection_size)
+            {
+                free(sfa_header);
+                free(stream_file_header);
+                return RESULT{ Archive_Parse_Struct_vector , false };
+            }
+            Archive_Parse_Struct_vector.push_back(parse_struct);
+
+            bool full_archive_unpack = unpack && selected_file_index == -1; // Do a full archive unpack.
+            bool single_archive_unpack = unpack && selected_file_index == loop_index; // Do a single file archive unpack.
 
             // Run this code if we set unpack to true when calling this function.
-            if (unpack) 
+            if (full_archive_unpack || single_archive_unpack)
             { 
                 // Create byte array with size of file_size
                 char* stream_file_buffer = (char*)malloc(stream_file_size);
@@ -380,7 +381,7 @@ namespace sf
                     free(sfa_header);
                     free(stream_file_header);
                     free(stream_file_buffer);
-                    return parse_struct_vector;
+                    return RESULT{ Archive_Parse_Struct_vector , false };
                 }
 
                 // Read current streamfile into a bytearray.
@@ -403,13 +404,34 @@ namespace sf
                 switch (sfa_header->StreamFormat)
                 {
                 case SF1:
-                    sf_decompress_type1(stream_file_buffer, filename.c_str(), *stream_file_header, out_directory.c_str(), stream_file_header->Offset);
+                    if (!sf_decompress_type1(stream_file_buffer, filename.c_str(), *stream_file_header, out_directory.c_str(), stream_file_header->Offset))
+                    {
+                        MessageBox(0, L"Error writing data! \nMake sure you don't have a handle to a file from some other tool! \nUnpacker is unable to continue!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                        free(stream_file_header);
+                        free(sfa_header);
+                        fclose(archive);
+                        return RESULT{ Archive_Parse_Struct_vector , false };
+                    }
                     break;
                 case SF2:
-                    sf_decompress_type2(stream_file_buffer, filename.c_str(), out_directory.c_str(), stream_file_header->Offset);
+                    if (!sf_decompress_type2(stream_file_buffer, filename.c_str(), out_directory.c_str(), stream_file_header->Offset))
+                    {
+                        MessageBox(0, L"Error writing data! \nMake sure you don't have a handle to a file from some other tool! \nUnpacker is unable to continue!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                        free(stream_file_header);
+                        free(sfa_header);
+                        fclose(archive);
+                        return RESULT{ Archive_Parse_Struct_vector , false };
+                    }
                     break;
                 case SF3:
-                    sf_decompress_type3(stream_file_buffer, filename.c_str(), out_directory.c_str(), stream_file_header->Offset);
+                    if (!sf_decompress_type3(stream_file_buffer, filename.c_str(), out_directory.c_str(), stream_file_header->Offset))
+                    {
+                        MessageBox(0, L"Error writing data! \nMake sure you don't have a handle to a file from some other tool! \nUnpacker is unable to continue!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                        free(stream_file_header);
+                        free(sfa_header);
+                        fclose(archive);
+                        return RESULT{ Archive_Parse_Struct_vector , false };
+                    }
                     break;
                 case UNKNOWN:
                     break;
@@ -423,13 +445,14 @@ namespace sf
             // free byte array memory and seek to next streamfile start position. 
             free(stream_file_header);
             fseek(archive, streamfile_startposition + stream_file_size, SEEK_SET);
+            loop_index++;
         }
 
         // Close the archive.
         fclose(archive);
         free(sfa_header);
 
-        return parse_struct_vector;
+        return RESULT{ Archive_Parse_Struct_vector , true };
     }
 
     // Function to parse the SFA Header (Doesn't decompress)
@@ -440,7 +463,6 @@ namespace sf
         long start_of_sfa = 0;
         SFArchiveHeaderNotDynamic sfa_header = {};
         
-
         _wfopen_s(&archive, archiveName, L"rb");
         if (archive == NULL) {
             perror("Error opening archive");

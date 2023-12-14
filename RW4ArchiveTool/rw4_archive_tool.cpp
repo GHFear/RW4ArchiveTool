@@ -1,6 +1,7 @@
  // EA Skate SF Parser By GHFear.
 
 #include "rw4_archive_tool.h"
+#include "Archives/IoTools/IoTools.h"
 #include "Archives/Parsers/magic_parser.h"
 #include "Archives/Parsers/sf_parser.h"
 #include "Archives/Parsers/big_eb_parser.h"
@@ -295,32 +296,58 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     ListView_GetItemText(hwndListView, selectedItemIndex, 0, Filename, sizeof(Filename) / sizeof(Filename[0]));
                     ListView_GetItemText(hwndListView, selectedItemIndex, 2, FileDirectory, sizeof(FileDirectory) / sizeof(FileDirectory[0]));
 
-                    // Create file path wstring.
+                    // Create file path wstring and update window title.
                     std::wstring FullPath = FileDirectory;
                     FullPath += Filename;
+                    GlobalLoadedArchive = FullPath;
+                    UpdateWindowTitle(FullPath);
 
+                    bool successful_parse = false;
                     // Parse Archive                
                     switch (magic::magic_parser(FullPath.c_str()))
                     {
                     case BIG_EB:
-                        parsed_archive = big_eb::parse_big_eb_archive(FullPath.c_str(), false);
+                    {
+                        auto parse_result = big_eb::parse_big_eb_archive(FullPath.c_str(), false, -1);
+                        parsed_archive = parse_result.parsed_info;
+                        successful_parse = parse_result.success;
                         break;
+                    }
                     case BIG4:
-                        parsed_archive = big4::parse_big4_archive(FullPath.c_str(), false);
+                    {
+                        auto parse_result = big4::parse_big4_archive(FullPath.c_str(), false, -1);
+                        parsed_archive = parse_result.parsed_info;
+                        successful_parse = parse_result.success;
                         break;
+                    }
                     case SFIL:
-                        parsed_archive = sf::parse_sf_archive(FullPath.c_str(), false);
+                    {
+                        auto parse_result = sf::parse_sf_archive(FullPath.c_str(), false, -1);
+                        parsed_archive = parse_result.parsed_info;
+                        successful_parse = parse_result.success;
                         break;
+                    }
                     case ARENA:
-                        parsed_archive = arena::parse_arena_filepackage(FullPath.c_str(), false);
+                    {
+                        auto parse_result = arena::parse_arena_filepackage(FullPath.c_str(), false, -1);
+                        parsed_archive = parse_result.parsed_info;
+                        successful_parse = parse_result.success;
                         break;
+                    }
                     case UNKNOWNARCHIVE:
                         break;
                     default:
                         break;
                     }
 
-                    UpdateFileView(hwndListView2, parsed_archive); // Update our listview on double click.
+                    if (successful_parse)
+                    {
+                        UpdateFileView(hwndListView2, parsed_archive); // Update our listview on double click.
+                    }
+                    else
+                    {
+                        MessageBox(hwnd, L"Error parsing archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    }
 
                     break;
                 }
@@ -369,30 +396,52 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
             // Now, selectedPaths vector contains the paths of all selected items in the ListView
             for (const auto& path : selectedPaths) {
+
+                bool successful_parse = false;
+
                 // Unpack type selector.
                 switch (magic::magic_parser(path.c_str()))
                 {
                 case BIG_EB:
-                    big_eb::parse_big_eb_archive(path.c_str(), true);
+                {
+                    auto unpack_result = big_eb::parse_big_eb_archive(path.c_str(), true, -1);
+                    successful_parse = unpack_result.success;
                     break;
+                }
                 case BIG4:
-                    big4::parse_big4_archive(path.c_str(), true);
+                {
+                    auto unpack_result = big4::parse_big4_archive(path.c_str(), true, -1);
+                    successful_parse = unpack_result.success;
                     break;
+                }
                 case SFIL:
-                    sf::parse_sf_archive(path.c_str(), true);
+                {
+                    auto unpack_result = sf::parse_sf_archive(path.c_str(), true, -1);
+                    successful_parse = unpack_result.success;
                     break;
+                }  
                 case ARENA:
-                    arena::parse_arena_filepackage(path.c_str(), true);
+                {
+                    auto unpack_result = arena::parse_arena_filepackage(path.c_str(), true, -1);
+                    successful_parse = unpack_result.success;
                     break;
+                }
                 case UNKNOWNARCHIVE:
                     MessageBox(hwnd, L"Archive is of unknown type!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
                     break;
                 default:
                     break;
                 }
+
+                if (!successful_parse)
+                {
+                    MessageBox(hwnd, L"Error unpacking archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                }
+
             }
 
-            MessageBox(hwnd, L"Archive was unpacked successfully!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+            MessageBox(hwnd, L"Unpacking routine complete!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+
             break;
         }
         case ID_ARCHIVEMENU_ITEM2:
@@ -408,8 +457,57 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
             break;
         }
         case ID_FILEMENU_ITEM1:
-            MessageBox(hwnd, L"This feature hasn't been implemented just yet ;)", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+        {
+            // Get the selected item text
+            int selectedItemIndex = ListView_GetNextItem(hwndListView2, -1, LVNI_SELECTED);
+            if (selectedItemIndex != -1) {
+                bool successful_parse = false;
+
+                // Unpack type selector.
+                switch (magic::magic_parser(GlobalLoadedArchive.c_str()))
+                {
+                case BIG_EB:
+                {
+                    auto unpack_result = big_eb::parse_big_eb_archive(GlobalLoadedArchive.c_str(), true, selectedItemIndex);
+                    successful_parse = unpack_result.success;
+                    break;
+                }
+                case BIG4:
+                {
+                    auto unpack_result = big4::parse_big4_archive(GlobalLoadedArchive.c_str(), true, selectedItemIndex);
+                    successful_parse = unpack_result.success;
+                    break;
+                }
+                case SFIL:
+                {
+                    auto unpack_result = sf::parse_sf_archive(GlobalLoadedArchive.c_str(), true, selectedItemIndex);
+                    successful_parse = unpack_result.success;
+                    break;
+                }
+                case ARENA:
+                {
+                    auto unpack_result = arena::parse_arena_filepackage(GlobalLoadedArchive.c_str(), true, selectedItemIndex);
+                    successful_parse = unpack_result.success;
+                    break;
+                }
+                case UNKNOWNARCHIVE:
+                    MessageBox(hwnd, L"Archive is of unknown type!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    break;
+                default:
+                    break;
+                }
+
+                if (!successful_parse)
+                {
+                    MessageBox(hwnd, L"Error unpacking archive!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                }
+                else
+                {
+                    MessageBox(hwnd, L"Unpacking routine complete!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                }
+            }
             break;
+        }
         }
         break;
     case WM_DESTROY:

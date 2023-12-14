@@ -12,7 +12,7 @@
 
 
 // Global variables
-TCHAR szAppName[] = TEXT("RenderWare4 Archive Tool | Version 0.0.6.5");
+TCHAR szAppName[] = TEXT("RenderWare4 Archive Tool | Version 0.0.7.0");
 HWND hwndMain;
 TCHAR szFileName[MAX_PATH] = TEXT("");
 HWND hwndListView;
@@ -20,3 +20,4 @@ HWND hwndListView2;
 HWND hwndListView3;
 HMENU hContextMenuArchives;
 HMENU hContextMenuFiles;
+std::wstring GlobalLoadedArchive;

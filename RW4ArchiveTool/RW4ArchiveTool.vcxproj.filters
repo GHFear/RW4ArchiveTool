@@ -58,6 +58,7 @@
     <ClInclude Include="Windows\FindWindow.h">
       <Filter>Headers\Windows</Filter>
     </ClInclude>
+    <ClInclude Include="Archives\IoTools\IoTools.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\RW4ArchiveTool.ico">

@@ -26,7 +26,20 @@ namespace arena
         "RWOBJECTTYPE_BITTABLE",
         "RWOBJECTTYPE_ARENALOCALATOMTABLE",
         "RWOBJECTTYPE_BASERESOURCE_START",
-        "RWOBJECTTYPE_BASERESOURCE",
+        "RWOBJECTTYPE_BASERESOURCE_1",
+        "RWOBJECTTYPE_BASERESOURCE_2",
+        "RWOBJECTTYPE_BASERESOURCE_3",
+        "RWOBJECTTYPE_BASERESOURCE_4",
+        "RWOBJECTTYPE_BASERESOURCE_5",
+        "RWOBJECTTYPE_BASERESOURCE_6",
+        "RWOBJECTTYPE_BASERESOURCE_7",
+        "RWOBJECTTYPE_BASERESOURCE_8",
+        "RWOBJECTTYPE_BASERESOURCE_9",
+        "RWOBJECTTYPE_BASERESOURCE_A",
+        "RWOBJECTTYPE_BASERESOURCE_B",
+        "RWOBJECTTYPE_BASERESOURCE_C",
+        "RWOBJECTTYPE_BASERESOURCE_D",
+        "RWOBJECTTYPE_BASERESOURCE_E",
         "RWOBJECTTYPE_BASERESOURCE_RESERVEDTO",
         "RWGOBJECTTYPE_NA",
         "RWGOBJECTTYPE_CAMERA",
@@ -194,7 +207,20 @@ namespace arena
         /*RWOBJECTTYPE_BITTABLE*/  '\x00\x01\x00\x0F',
         /*RWOBJECTTYPE_ARENALOCALATOMTABLE*/  '\x00\x01\x00\x10',
         /*RWOBJECTTYPE_BASERESOURCE_START*/  '\x00\x01\x00\x30',
-        /*RWOBJECTTYPE_BASERESOURCE*/  '\x00\x01\x00\x31',
+        /*RWOBJECTTYPE_BASERESOURCE_1*/  '\x00\x01\x00\x31',
+        /*RWOBJECTTYPE_BASERESOURCE_2*/  '\x00\x01\x00\x32',
+        /*RWOBJECTTYPE_BASERESOURCE_3*/  '\x00\x01\x00\x33',
+        /*RWOBJECTTYPE_BASERESOURCE_4*/  '\x00\x01\x00\x34',
+        /*RWOBJECTTYPE_BASERESOURCE_5*/  '\x00\x01\x00\x35',
+        /*RWOBJECTTYPE_BASERESOURCE_6*/  '\x00\x01\x00\x36',
+        /*RWOBJECTTYPE_BASERESOURCE_7*/  '\x00\x01\x00\x37',
+        /*RWOBJECTTYPE_BASERESOURCE_8*/  '\x00\x01\x00\x38',
+        /*RWOBJECTTYPE_BASERESOURCE_9*/  '\x00\x01\x00\x39',
+        /*RWOBJECTTYPE_BASERESOURCE_A*/  '\x00\x01\x00\x3A',
+        /*RWOBJECTTYPE_BASERESOURCE_B*/  '\x00\x01\x00\x3B',
+        /*RWOBJECTTYPE_BASERESOURCE_C*/  '\x00\x01\x00\x3C',
+        /*RWOBJECTTYPE_BASERESOURCE_D*/  '\x00\x01\x00\x3D',
+        /*RWOBJECTTYPE_BASERESOURCE_E*/  '\x00\x01\x00\x3E',
         /*RWOBJECTTYPE_BASERESOURCE_RESERVEDTO*/  '\x00\x01\x00\x3F',
         /*RWGOBJECTTYPE_NA1*/  '\x00\x02\x00\x00',
         /*RWGOBJECTTYPE_CAMERA*/  '\x00\x02\x00\x01',
@@ -343,6 +369,8 @@ namespace arena
         /*FORCENUMSIZEINT*/  '\x7F\xFF\xFF\xFF'
     };
 
+
+    // I don't use this and it's not updated with all information from the other structures. (update if we ever need it.)
     enum ArenaObjectTypeEnum {
     RWOBJECTTYPE_NA = '\x00\x01\x00\x00',
     RWOBJECTTYPE_ARENA = '\x00\x01\x00\x01',
@@ -511,11 +539,11 @@ namespace arena
     FORCENUMSIZEINT = '\x7F\xFF\xFF\xFF'
     };
 
-    std::wstring to_wstring(const std::string stringToConvert)
+    std::wstring to_wstring(const std::string StringToConvert)
     {
-        int wideStringLength = MultiByteToWideChar(CP_UTF8, 0, stringToConvert.c_str(), -1, nullptr, 0);
+        int wideStringLength = MultiByteToWideChar(CP_UTF8, 0, StringToConvert.c_str(), -1, nullptr, 0);
         wchar_t* wideStringBuffer = new wchar_t[wideStringLength];
-        MultiByteToWideChar(CP_UTF8, 0, stringToConvert.c_str(), -1, wideStringBuffer, wideStringLength);
+        MultiByteToWideChar(CP_UTF8, 0, StringToConvert.c_str(), -1, wideStringBuffer, wideStringLength);
         std::wstring wideString(wideStringBuffer);
         delete[] wideStringBuffer;
 
@@ -523,47 +551,61 @@ namespace arena
     }
 
     // Function to unpack files from an Arena file package.
-    std::vector<Archive_Parse_Struct> parse_arena_filepackage(const wchar_t* archiveName, bool unpack) {
+    auto parse_arena_filepackage(std::wstring ArchivePath, bool Unpack, int64_t selected_file_index) {
         // Declare local variables.
         FILE* archive = nullptr;
         FILE* file = nullptr;
         std::vector<Archive_Parse_Struct> Archive_Parse_Struct_vector = {};
-        std::vector<uint32_t> file_type_vector = {};
-        DWORD Parsed_Arena_Object_Type = 0;
+        std::wstring out_directory = ParseFilePath(ArchivePath).first + GetFilenameWithoutExtension(ArchivePath.c_str());
 
-        _wfopen_s(&archive, archiveName, L"rb");
+        struct RESULT { std::vector<Archive_Parse_Struct>  parsed_info; bool success; };
+        
+        _wfopen_s(&archive, ArchivePath.c_str(), L"rb");
         if (archive == NULL) {
             perror("Error opening archive");
-            return Archive_Parse_Struct_vector;
+            //MessageBox(0, L"Error opening archive!\nUnpacker is unable to continue!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+            return RESULT{ Archive_Parse_Struct_vector , false };
         }
 
-        _fseeki64(archive, 32, SEEK_SET);
+        // Save start position.
+        uint64_t start_of_archive = _ftelli64(archive);
 
+        // Save archive size and go back to start position.
+        fseek(archive, 0, SEEK_END);
+        uint64_t archive_size = _ftelli64(archive);
+        fseek(archive, start_of_archive, SEEK_SET);
+
+        _fseeki64(archive, 32, SEEK_SET); // Seek to file_count.
+
+        // Read filecount and convert to little endian.
         uint32_t file_count = 0;
         fread(&file_count, sizeof(uint32_t), 1, archive);
         file_count = BigToLittleUINT(file_count);
 
-        _fseeki64(archive, 48, SEEK_SET);
+        _fseeki64(archive, 48, SEEK_SET); // Seek to file_table_offset
 
+        // Read file table offset and convert to little endian.
         uint32_t file_table_offset = 0;
         fread(&file_table_offset, sizeof(uint32_t), 1, archive);
         file_table_offset = BigToLittleUINT(file_table_offset);
 
+        if (file_table_offset > archive_size)
+        {
+            return RESULT{ Archive_Parse_Struct_vector , false };
+        }
+
+        // Loop through all Arena objects.
         uint32_t object_index = 0;
         for (size_t i = 0; i < file_count; i++)
         {
             Archive_Parse_Struct Parsed_Archive_Struct = {};
 
-            std::wstring wide_archiv_path = archiveName;
-            std::wstring directory = ParseFilePath(wide_archiv_path).first;
-            std::wstring file_directory = directory;
-            file_directory += GetFilenameWithoutExtension(archiveName);
-            std::wstring file_path = file_directory + L"\\";
-            std::wstring object_index_widestring;
+            std::wstring out_path = out_directory + L"\\";
             bool name_found = false;
 
-            _fseeki64(archive, file_table_offset + (i*24), SEEK_SET);
+            _fseeki64(archive, file_table_offset + (i*24), SEEK_SET); // Seek to file toc.
 
+            // Read TOC data and convert to little endian.
             uint32_t offset = 0;
             fread(&offset, sizeof(uint32_t), 1, archive);
             offset = BigToLittleUINT(offset);
@@ -584,6 +626,11 @@ namespace arena
             fread(&file_type, sizeof(uint32_t), 1, archive);
             file_type = BigToLittleUINT(file_type);
 
+            if (offset > archive_size || size > archive_size)
+            {
+                return RESULT{ Archive_Parse_Struct_vector , false };
+            }
+
             size_t object_name_index = 0;
             for (size_t j = 0; j < sizeof(ArenaObjectTypeArray) / sizeof(ArenaObjectTypeArray[0]); j++)
             {
@@ -595,21 +642,21 @@ namespace arena
                 }
             }
 
-            object_index++;
+            object_index++; // Add 1 to object index.
             
+            // Check if we found a name that matches the object ID.
             if (name_found == true)
             {
-                object_index_widestring += L"Object_" + std::to_wstring(object_index) + L"_";
-                file_path += object_index_widestring + to_wstring(ArenaObjectTypeNames[object_name_index]);
+                out_path += L"Object_" + std::to_wstring(object_index) + L"_" + to_wstring(ArenaObjectTypeNames[object_name_index]);
                 Parsed_Archive_Struct.filename = ArenaObjectTypeNames[object_name_index];
             }
             else
             {
-                object_index_widestring += L"Object_" + std::to_wstring(object_index) + L"_";
-                file_path += object_index_widestring + L"UNKNOWN_TYPE";
+                out_path += L"Object_" + std::to_wstring(object_index) + L"_" + L"UNKNOWN_TYPE";
                 Parsed_Archive_Struct.filename = "UNKNOWN_TYPE";
             }
 
+            // If offset is 0, handle differently and assume the offset is the start of the first Arena Object.
             if (offset == 0)
             {
                 _fseeki64(archive, 68, SEEK_SET);
@@ -619,56 +666,50 @@ namespace arena
                 offset = offset + local_size;
             }
 
+            // Build parse struct.
             Parsed_Archive_Struct.file_offset = offset;
             Parsed_Archive_Struct.file_size = size;
             Parsed_Archive_Struct.toc_offset = file_table_offset + (i * 24);
 
-            _fseeki64(archive, offset, SEEK_SET);
+            _fseeki64(archive, offset, SEEK_SET); // Seek to file offset.
 
-            if (unpack)
+            bool full_archive_unpack = Unpack && selected_file_index == -1; // Do a full archive unpack.
+            bool single_archive_unpack = Unpack && selected_file_index == i; // Do a single file archive unpack.
+
+            if (full_archive_unpack || single_archive_unpack)
             {
                 // Attempt to create the directory
-                if (CreateDirectoryRecursively(file_directory.c_str())) {
-                    wprintf(L"Directory created: %s\n", file_directory.c_str());
+                if (CreateDirectoryRecursively(out_directory.c_str())) {
+                    wprintf(L"Directory created: %s\n", out_directory.c_str());
                 }
                 else {
-                    wprintf(L"Failed to create directory or directory already exists: %s\n", file_directory.c_str());
+                    wprintf(L"Failed to create directory or directory already exists: %s\n", out_directory.c_str());
                 }
 
-                char* out_buffer_char = (char*)malloc(size);
-                if (out_buffer_char == nullptr)
+                char* out_buffer = (char*)malloc(size);
+                if (out_buffer == nullptr)
                 {
                     fclose(archive);
-                    return Archive_Parse_Struct_vector;
+                    MessageBox(0, L"Error creating Arena out_buffer!  \nUnpacker is unable to continue!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                   
+                    return RESULT { Archive_Parse_Struct_vector , false };
                 }
 
-                fread(out_buffer_char, size, 1, archive);
+                fread(out_buffer, size, 1, archive);
 
-
-                // Write (append) to file.
-                if (_wfopen_s(&file, file_path.c_str(), L"wb+") == 0)
+                // Write to file.
+                if (!IoTools::write_file(file, out_path, out_buffer, size))
                 {
-                    if (file != nullptr) {
-                        size_t bytesWritten = fwrite(out_buffer_char, sizeof(char), size, file);
-                        if (bytesWritten != size) {
-                            fprintf(stderr, "Error writing to file.\n");
-                        }
-                        fclose(file);
-                    }
-                    else {
-                        fprintf(stderr, "Error opening file for append.\n");
-                    }
-                }
-                else {
-                    fprintf(stderr, "Error opening file.\n");
+                    fclose(archive);
+                    MessageBox(0, L"Error writing data! \nMake sure you don't have a handle to a file from some other tool! \nUnpacker is unable to continue!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    return RESULT{ Archive_Parse_Struct_vector , false };
                 }
             }
-
 
             Archive_Parse_Struct_vector.push_back(Parsed_Archive_Struct);
         }
 
         fclose(archive);
-        return Archive_Parse_Struct_vector;
+        return RESULT { Archive_Parse_Struct_vector , true };
     }
 }
