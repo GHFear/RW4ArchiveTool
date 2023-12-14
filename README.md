@@ -32,6 +32,7 @@
 -Skate 3 | PS3 | Xbox 360 <br>
 -Skate It | Wii <br>
 -NHL21 | PS4 <br>
+-NHL Legacy | PS3 | Xbox 360 <br>
 
 
 */GHFear*
