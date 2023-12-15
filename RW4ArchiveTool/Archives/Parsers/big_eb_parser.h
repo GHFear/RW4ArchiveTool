@@ -79,20 +79,12 @@ namespace big_eb
             wprintf(L"Failed to create directory or directory already exists: %s\n", Filedirectory.c_str());
         }
 
-        // Write to file.
-        if (_wfopen_s(&file, Filepath.c_str(), L"wb+") != 0)
+        // Create empty file.
+        if (!IoTools::create_file(file, Filepath))
         {
-            fprintf(stderr, "Error opening file.\n");
             return false;
         }
 
-        // Check if nullptr
-        if (file == nullptr) {
-            fprintf(stderr, "Error opening file for write.\n");
-            return false;
-        }
-
-        fclose(file);
         return true;
     }
 
@@ -128,10 +120,9 @@ namespace big_eb
         return true;
     }
 
-    bool chunkzip_decompress(FILE* archive, std::wstring Filedirectory, std::wstring Filepath)
+    bool chunk_decompress(FILE* archive, std::wstring Filedirectory, std::wstring Filepath)
     {
         // Local Variables.
-        FILE* file = nullptr;
         std::vector<uint8_t> decompression_out_buffer_vector = {};
         size_t decompressed_size = 0;
         
@@ -182,7 +173,6 @@ namespace big_eb
             fread(file_buffer, block_header.chunkSizeCompressed, 1, archive); // Read file into buffer
             std::vector<uint8_t> decompression_in_buffer_vector(file_buffer, file_buffer + block_header.chunkSizeCompressed);
 
-
             // Check if the chunk is compressed.
             if (block_header.compressionType == 2) // Chunk is compressed with refpack.
             {
@@ -208,155 +198,43 @@ namespace big_eb
                 }
                 else {
                     std::cerr << "Decompression failed." << std::endl;
+                    MessageBoxA(0, "Decompression failed! Reach out to GHFear for support.", "Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                    free(file_buffer);
+                    return false;
                 }
+            }
+            else
+            {
+                MessageBoxA(0, "Unknown compression type! Reach out to GHFear for support.", "Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+                free(file_buffer);
+                return false;
             }
 
             free(file_buffer);
         }
 
         // Attempt to create the directory
-        if (CreateDirectoryRecursively(Filedirectory.c_str())) {
+        if (CreateDirectoryRecursively(Filedirectory.c_str())) 
+        {
             wprintf(L"Directory created: %s\n", Filedirectory.c_str());
         }
-        else {
+        else 
+        {
             wprintf(L"Failed to create directory or directory already exists: %s\n", Filedirectory.c_str());
         }
 
         // Write to file.
-        if (_wfopen_s(&file, Filepath.c_str(), L"wb+") != 0)
-        {
-            fprintf(stderr, "Error opening file.\n");
-            return false;
-        }
-
-        // Check if nullptr
-        if (file == nullptr) {
-            fprintf(stderr, "Error opening file for write.\n");
-            return false;
-        }
-
-        //  Write and check if we wrote all bytes.
-        size_t bytesWritten = fwrite(decompression_out_buffer_vector.data(), sizeof(char), chunk_pack_header.uncompressedLength, file);
-        if (bytesWritten != chunk_pack_header.uncompressedLength) {
-            fprintf(stderr, "Error writing to file.\n");
-            fclose(file);
-            return false;
-        }
-
-        fclose(file);
-        return true;
-    }
-
-    bool chunkref_decompress(FILE* archive, std::wstring Filedirectory, std::wstring Filepath)
-    {
-        // Local Variables.
         FILE* file = nullptr;
-        std::vector<uint8_t> decompression_out_buffer_vector = {};
-        size_t decompressed_size = 0;
-
-        ChunkPackHeader chunk_pack_header = {};
-        fread(&chunk_pack_header, sizeof(chunk_pack_header), 1, archive);
-        chunk_pack_header.alignedTo = BigToLittleUINT(chunk_pack_header.alignedTo);
-        chunk_pack_header.blockSize = BigToLittleUINT(chunk_pack_header.blockSize);
-        chunk_pack_header.numSegments = BigToLittleUINT(chunk_pack_header.numSegments);
-        chunk_pack_header.uncompressedLength = BigToLittleUINT(chunk_pack_header.uncompressedLength);
-        chunk_pack_header.VersionNum = BigToLittleUINT(chunk_pack_header.VersionNum);
-    
-        for (size_t i = 0; i < chunk_pack_header.numSegments; i++)
+        if (!IoTools::write_file(file, Filepath, (char*)decompression_out_buffer_vector.data(), chunk_pack_header.uncompressedLength))
         {
-            // Get the current location.
-            size_t current_location = _ftelli64(archive);
-            std::cout << current_location << "\n";
-
-            // Extract the last hexadecimal digit
-            size_t lastDigit = current_location % 0x10;
-
-            // Check if the last digit is greater than 0x08 or 0.
-            if (lastDigit > 0x08 || lastDigit == 0) {
-                std::cout << "The offset ends with a value greater than or equal to 0x08." << std::endl;
-                current_location = roundUpToMultiple(current_location, chunk_pack_header.alignedTo);
-                current_location += 8;
-            }
-            else {
-                std::cout << "The offset does not end with a value greater than or equal to 0x08." << std::endl;
-                current_location = roundUpToMultiple(current_location, 8);
-            }
-
-             _fseeki64(archive, current_location, SEEK_SET); // Seek to closest aligned location recognized by the BIG EB v3 format.
-
-             // Read RW chunk block header.
-             ChunkBlockHeader block_header = {};
-             fread(&block_header, sizeof(block_header), 1, archive);
-             block_header.chunkSizeCompressed = BigToLittleUINT(block_header.chunkSizeCompressed);
-             block_header.compressionType = BigToLittleUINT(block_header.compressionType);
-
-             // Allocate memory for our file buffer
-             char* file_buffer = (char*)malloc(block_header.chunkSizeCompressed);
-             if (file_buffer == NULL) {
-                 perror("Error allocating memory");
-                 return false;
-             }
-
-             // Read chunk into file buffer.
-             fread(file_buffer, block_header.chunkSizeCompressed, 1, archive); // Read file into buffer
-             std::vector<uint8_t> decompression_in_buffer_vector(file_buffer, file_buffer + block_header.chunkSizeCompressed);
-
-             // Check if the chunk is compressed.
-             if (block_header.compressionType == 2) // Chunk is compressed with refpack.
-             {
-                 std::vector<uint8_t> chunk_decompression_out_buffer_vector = refpack::decompress(decompression_in_buffer_vector);
-                 decompressed_size += chunk_decompression_out_buffer_vector.size();
-                 decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), chunk_decompression_out_buffer_vector.begin(), chunk_decompression_out_buffer_vector.end());
-             }
-             else if (block_header.compressionType == 4) // Chunk is not compressed
-             {
-                 decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), decompression_in_buffer_vector.begin(), decompression_in_buffer_vector.end());
-             }
-             else if (block_header.compressionType == 1) // Chunk is compressed with zlib.
-             {
-                 //decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), decompression_in_buffer_vector.begin(), decompression_in_buffer_vector.end());
-             }
-             
-             free(file_buffer);
-        }
-
-        // Attempt to create the directory
-        if (CreateDirectoryRecursively(Filedirectory.c_str())) {
-            wprintf(L"Directory created: %s\n", Filedirectory.c_str());
-        }
-        else {
-            wprintf(L"Failed to create directory or directory already exists: %s\n", Filedirectory.c_str());
-        }
-
-        // Write to file.
-        if (_wfopen_s(&file, Filepath.c_str(), L"wb+") != 0)
-        {
-            fprintf(stderr, "Error opening file.\n");
             return false;
         }
 
-        // Check if nullptr
-        if (file == nullptr) {
-            fprintf(stderr, "Error opening file for write.\n");
-            return false;
-        }
-
-        //  Write and check if we wrote all bytes.
-        size_t bytesWritten = fwrite(decompression_out_buffer_vector.data(), sizeof(char), chunk_pack_header.uncompressedLength, file);
-        if (bytesWritten != chunk_pack_header.uncompressedLength) {
-            fprintf(stderr, "Error writing to file.\n");
-            fclose(file);
-            return false;
-        }
-
-        fclose(file);
         return true;
     }
 
     bool unpack_uncompressed_file(FILE* archive, DWORD SIZE, std::wstring Filedirectory, std::wstring Filepath)
     {
-        FILE* file = nullptr;
-
         // Allocate memory for our file buffer
         char* file_buffer = (char*)malloc(SIZE);
         if (file_buffer == NULL) {
@@ -375,30 +253,13 @@ namespace big_eb
         }
 
         // Write to file.
-        if (_wfopen_s(&file, Filepath.c_str(), L"wb+") != 0)
+        FILE* file = nullptr;
+        if (!IoTools::write_file(file, Filepath, file_buffer, SIZE))
         {
-            fprintf(stderr, "Error opening file.\n");
             free(file_buffer);
             return false;
         }
 
-        // Check if nullptr
-        if (file == nullptr) {
-            fprintf(stderr, "Error opening file for write.\n");
-            free(file_buffer);
-            return false;
-        }
-
-        //  Write and check if we wrote all bytes.
-        size_t bytesWritten = fwrite(file_buffer, sizeof(char), SIZE, file);
-        if (bytesWritten != SIZE) {
-            fprintf(stderr, "Error writing to file.\n");
-            fclose(file);
-            free(file_buffer);
-            return false;
-        }
-
-        fclose(file);
         free(file_buffer);
         return true;
     }
@@ -407,14 +268,11 @@ namespace big_eb
     {
         std::string output_string = " Failed out unpack.";
         output_string += input_msg;
-
         MessageBoxA(0, output_string.c_str(), "Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
     }
 
     bool unpack_refpack_file(FILE* archive, DWORD SIZE, std::wstring Filedirectory, std::wstring Filepath)
     {
-        FILE* file = nullptr;
-
         // Allocate memory for our file buffer
         char* file_buffer = (char*)malloc(SIZE);
         if (file_buffer == NULL) {
@@ -437,30 +295,13 @@ namespace big_eb
         }
 
         // Write to file.
-        if (_wfopen_s(&file, Filepath.c_str(), L"wb+") != 0)
+        FILE* file = nullptr;
+        if (!IoTools::write_file(file, Filepath, (char*)decompression_out_buffer_vector.data(), decompressed_size))
         {
-            fprintf(stderr, "Error opening file.\n");
             free(file_buffer);
             return false;
         }
 
-        // Check if nullptr
-        if (file == nullptr) {
-            fprintf(stderr, "Error opening file for write.\n");
-            free(file_buffer);
-            return false;
-        }
-
-        //  Write and check if we wrote all bytes.
-        size_t bytesWritten = fwrite(decompression_out_buffer_vector.data(), sizeof(char), decompressed_size, file);
-        if (bytesWritten != decompressed_size) {
-            fprintf(stderr, "Error writing to file.\n");
-            fclose(file);
-            free(file_buffer);
-            return false;
-        }
-
-        fclose(file);
         free(file_buffer);
         return true;
     }
@@ -478,6 +319,7 @@ namespace big_eb
         std::vector<UINT64> offset_Vector;
         std::vector<DWORD> size_Vector;
         std::vector<BYTE> compression_type_Vector;
+
         DWORD folders_offset = 0;
 
         _wfopen_s(&archive, archiveName, L"rb");
@@ -508,6 +350,7 @@ namespace big_eb
 
         if (archive_header.FileAmount > archive_size || archive_header.ArchiveSize > archive_size || archive_header.FatSize > archive_size)
         {
+            fclose(archive);
             return RESULT{ Archive_Parse_Struct_vector , false };
         }
 
@@ -533,6 +376,7 @@ namespace big_eb
 
             if (toc_index.offset > archive_size || toc_index.compressed_size > archive_size || toc_index.size > archive_size)
             {
+                fclose(archive);
                 return RESULT{ Archive_Parse_Struct_vector , false };
             }
 
@@ -596,10 +440,10 @@ namespace big_eb
             _fseeki64(archive, offset_Vector[i], SEEK_SET); // Seek to file offset location.
 
             // Prepare final wide character strings. (Stage 3: Build proper path)
-            out_filedirectory += ConvertCharToWchar(folder.c_str());
+            out_filedirectory += to_wstring(folder);
             std::replace(out_filepath.begin(), out_filepath.end(), L'/', L'\\');
             std::replace(out_filedirectory.begin(), out_filedirectory.end(), L'/', L'\\');
-            out_filepath += ConvertCharToWchar(final_extracted_filepath.c_str());
+            out_filepath += to_wstring(final_extracted_filepath);
 
             if (!unpack)
             {
@@ -631,8 +475,9 @@ namespace big_eb
                     }
                     else if (full_archive_unpack || single_archive_unpack)
                     {
-                        if (chunkref_decompress(archive, out_filedirectory, out_filepath) != true)
+                        if (chunk_decompress(archive, out_filedirectory, out_filepath) != true)
                         {
+                            fclose(archive);
                             return RESULT{ Archive_Parse_Struct_vector , false };
                         }
                     }
@@ -646,8 +491,9 @@ namespace big_eb
                     }
                     else if (full_archive_unpack || single_archive_unpack)
                     {
-                        if (chunkzip_decompress(archive, out_filedirectory, out_filepath) != true)
+                        if (chunk_decompress(archive, out_filedirectory, out_filepath) != true)
                         {
+                            fclose(archive);
                             return RESULT{ Archive_Parse_Struct_vector , false };
                         }
                     }
@@ -656,11 +502,12 @@ namespace big_eb
                 {
                     strcpy_s(Parsed_Archive_Struct.ztype, "CHUNKLZX");
                     if (!unpack) { goto dont_unpack_loc; }
+                    fclose(archive);
                     return RESULT{ Archive_Parse_Struct_vector , false };
                 }
                 else //Single file (can be uncompressed or compressed with refpack)
                 {
-                    WORD refpack_magic;
+                    WORD refpack_magic = 0;
                     fread(&refpack_magic, sizeof(WORD), 1, archive);
                     refpack_magic = BigToLittleUINT(refpack_magic);
                     _fseeki64(archive, offset_Vector[i], SEEK_SET); // Seek to file offset location.
@@ -675,6 +522,7 @@ namespace big_eb
                         {
                             if (unpack_refpack_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
                             {
+                                fclose(archive);
                                 return RESULT{ Archive_Parse_Struct_vector , false };
                             }
                         }
@@ -690,6 +538,7 @@ namespace big_eb
                         {
                             if (unpack_uncompressed_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
                             {
+                                fclose(archive);
                                 return RESULT{ Archive_Parse_Struct_vector , false };
                             }
                         }
@@ -707,15 +556,25 @@ namespace big_eb
                 {
                     if (unpack_empty_file(archive, size_Vector[i], out_filedirectory, out_filepath) != true)
                     {
+                        fclose(archive);
                         return RESULT{ Archive_Parse_Struct_vector , false };
                     }
                 }
             }
 
             dont_unpack_loc:
+            name_buffer.clear();
+            name.clear();
+            folder_buffer.clear();
+            folder.clear();
             Archive_Parse_Struct_vector.push_back(Parsed_Archive_Struct);
             _fseeki64(archive, next_name_offset, SEEK_SET); // Seek to the saved next name location.
         }
+
+        toc_offset_Vector.clear();
+        offset_Vector.clear();
+        size_Vector.clear();
+        compression_type_Vector.clear();
 
         // Close the archive.
         fclose(archive);

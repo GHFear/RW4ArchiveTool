@@ -539,16 +539,6 @@ namespace arena
     FORCENUMSIZEINT = '\x7F\xFF\xFF\xFF'
     };
 
-    std::wstring to_wstring(const std::string StringToConvert)
-    {
-        int wideStringLength = MultiByteToWideChar(CP_UTF8, 0, StringToConvert.c_str(), -1, nullptr, 0);
-        wchar_t* wideStringBuffer = new wchar_t[wideStringLength];
-        MultiByteToWideChar(CP_UTF8, 0, StringToConvert.c_str(), -1, wideStringBuffer, wideStringLength);
-        std::wstring wideString(wideStringBuffer);
-        delete[] wideStringBuffer;
-
-        return wideString;
-    }
 
     // Function to unpack files from an Arena file package.
     auto parse_arena_filepackage(std::wstring ArchivePath, bool Unpack, int64_t selected_file_index) {
@@ -563,7 +553,6 @@ namespace arena
         _wfopen_s(&archive, ArchivePath.c_str(), L"rb");
         if (archive == NULL) {
             perror("Error opening archive");
-            //MessageBox(0, L"Error opening archive!\nUnpacker is unable to continue!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
             return RESULT{ Archive_Parse_Struct_vector , false };
         }
 
@@ -591,6 +580,7 @@ namespace arena
 
         if (file_table_offset > archive_size)
         {
+            fclose(archive);
             return RESULT{ Archive_Parse_Struct_vector , false };
         }
 
@@ -628,6 +618,7 @@ namespace arena
 
             if (offset > archive_size || size > archive_size)
             {
+                fclose(archive);
                 return RESULT{ Archive_Parse_Struct_vector , false };
             }
 
@@ -691,7 +682,6 @@ namespace arena
                 {
                     fclose(archive);
                     MessageBox(0, L"Error creating Arena out_buffer!  \nUnpacker is unable to continue!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-                   
                     return RESULT { Archive_Parse_Struct_vector , false };
                 }
 
@@ -701,9 +691,12 @@ namespace arena
                 if (!IoTools::write_file(file, out_path, out_buffer, size))
                 {
                     fclose(archive);
+                    free(out_buffer);
                     MessageBox(0, L"Error writing data! \nMake sure you don't have a handle to a file from some other tool! \nUnpacker is unable to continue!", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
                     return RESULT{ Archive_Parse_Struct_vector , false };
                 }
+
+                free(out_buffer);
             }
 
             Archive_Parse_Struct_vector.push_back(Parsed_Archive_Struct);

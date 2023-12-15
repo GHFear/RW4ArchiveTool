@@ -1,20 +1,11 @@
 #pragma once
 #include "../../Unspecified/Global.h"
+#include "../Paths/Paths.h"
 #include <codecvt>
 #include <locale>
 
 void UpdateWindowTitle(const std::wstring& fileName);
 
-std::wstring to_wstring(const std::string stringToConvert)
-{
-    int wideStringLength = MultiByteToWideChar(CP_UTF8, 0, stringToConvert.c_str(), -1, nullptr, 0);
-    wchar_t* wideStringBuffer = new wchar_t[wideStringLength];
-    MultiByteToWideChar(CP_UTF8, 0, stringToConvert.c_str(), -1, wideStringBuffer, wideStringLength);
-    std::wstring wideString(wideStringBuffer);
-    delete[] wideStringBuffer;
-
-    return wideString;
-}
 
 void int_to_wchar(uint32_t input_int, wchar_t* wchar_reference, size_t bufferSize)
 {

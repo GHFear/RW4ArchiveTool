@@ -45,30 +45,12 @@ namespace big4
         }
 
         // Write to file.
-        if (_wfopen_s(&file, Filepath.c_str(), L"wb+") != 0)
+        if (!IoTools::write_file(file, Filepath, (char*)file_buffer, size))
         {
-            fprintf(stderr, "Error opening file.\n");
             free(file_buffer);
             return false;
         }
 
-        // Check if nullptr
-        if (file == nullptr) {
-            fprintf(stderr, "Error opening file for write.\n");
-            free(file_buffer);
-            return false;
-        }
-
-        //  Write and check if we wrote all bytes.
-        size_t bytesWritten = fwrite(file_buffer, sizeof(char), size, file);
-        if (bytesWritten != size) {
-            fprintf(stderr, "Error writing to file.\n");
-            fclose(file);
-            free(file_buffer);
-            return false;
-        }
-
-        fclose(file);
         free(file_buffer);
         return true;
     }
@@ -99,30 +81,12 @@ namespace big4
         }
 
         // Write to file.
-        if (_wfopen_s(&file, Filepath.c_str(), L"wb+") != 0)
+        if (!IoTools::write_file(file, Filepath, (char*)decompression_out_buffer_vector.data(), decompressed_size))
         {
-            fprintf(stderr, "Error opening file.\n");
             free(file_buffer);
             return false;
         }
 
-        // Check if nullptr
-        if (file == nullptr) {
-            fprintf(stderr, "Error opening file for write.\n");
-            free(file_buffer);
-            return false;
-        }
-
-        //  Write and check if we wrote all bytes.
-        size_t bytesWritten = fwrite(decompression_out_buffer_vector.data(), sizeof(char), decompressed_size, file);
-        if (bytesWritten != decompressed_size) {
-            fprintf(stderr, "Error writing to file.\n");
-            fclose(file);
-            free(file_buffer);
-            return false;
-        }
-
-        fclose(file);
         free(file_buffer);
         return true;
     }
@@ -159,6 +123,7 @@ namespace big4
 
         if (big4_header.header_length > archive_size || big4_header.length > archive_size || big4_header.number_files > archive_size)
         {
+            fclose(archive);
             return RESULT{ Archive_Parse_Struct_vector , false };
         }
 
@@ -183,6 +148,7 @@ namespace big4
 
             if (big4_fat.size > archive_size || big4_fat.offset > archive_size)
             {
+                fclose(archive);
                 return RESULT{ Archive_Parse_Struct_vector , false };
             }
             
@@ -229,6 +195,7 @@ namespace big4
                 {
                     if (unpack_refpack_file(archive, big4_fat.size, full_out_file_directory, full_out_filepath) != true)
                     {
+                        fclose(archive);
                         return RESULT{ Archive_Parse_Struct_vector , false };
                     }
                 }
@@ -243,6 +210,7 @@ namespace big4
                 {
                     if (unpack_uncompressed_file(archive, big4_fat.size, full_out_file_directory, full_out_filepath) != true)
                     {
+                        fclose(archive);
                         return RESULT{ Archive_Parse_Struct_vector , false };
                     }
                 }

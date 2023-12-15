@@ -7,6 +7,17 @@ wchar_t* ConvertCharToWchar(const char* charString) {
     return wideCharString;
 }
 
+std::wstring to_wstring(const std::string StringToConvert)
+{
+    int wideStringLength = MultiByteToWideChar(CP_UTF8, 0, StringToConvert.c_str(), -1, nullptr, 0);
+    wchar_t* wideStringBuffer = new wchar_t[wideStringLength];
+    MultiByteToWideChar(CP_UTF8, 0, StringToConvert.c_str(), -1, wideStringBuffer, wideStringLength);
+    std::wstring wideString(wideStringBuffer);
+    delete[] wideStringBuffer;
+
+    return wideString;
+}
+
 std::pair<std::wstring, std::vector<std::wstring>> ParseMultiFilePath(const _TCHAR* multiFilePath) {
     std::vector<std::wstring> fileNames;
     std::wstring directory;
