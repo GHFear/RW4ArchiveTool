@@ -23,6 +23,8 @@ namespace big4
 		uint8_t zero_terminator;
 	};
 
+	const char* Big4_Magic_Setting[2] = {"BIG4", "BIGF"};
+
 	uint64_t get_big4_toc_index_size(const std::wstring& input_wstring)
 	{
 		return 8 + input_wstring.length() + 1;
@@ -38,10 +40,16 @@ namespace big4
 		}
 	}
 
-	Big4Header write_init_header_section(std::vector<std::string>& toc_compatible_filepaths, std::ofstream& outfile)
+	Big4Header write_init_header_section(std::vector<std::string>& toc_compatible_filepaths, bool Big4IsBigFCheckState, std::ofstream& outfile)
 	{
 		Big4Header header = {};
-		std::memcpy(header.magic, "BIG4", 4);
+		if (Big4IsBigFCheckState == true) {
+			std::memcpy(header.magic, Big4_Magic_Setting[1], 4);
+		}
+		else {
+			std::memcpy(header.magic, Big4_Magic_Setting[0], 4);
+		}
+
 		header.length = sizeof(Big4Header);
 		header.number_files = BigToLittleUINT((uint32_t)toc_compatible_filepaths.size());
 		header.header_length = sizeof(Big4Header) + toc_compatible_filepaths.size() * sizeof(Big4Toc) + sizeof(Big4HeaderTailSettings);
@@ -128,7 +136,7 @@ namespace big4
 		return settings;
 	}
 
-	bool bundlebig4(std::vector<std::wstring> filepaths_wstring, std::wstring selected_path, bool Big4CompressionCheckState, std::wstring save_bigfile_path)
+	bool bundlebig4(std::vector<std::wstring> filepaths_wstring, std::wstring selected_path, bool Big4CompressionCheckState, std::wstring save_bigfile_path, bool Big4IsBigFCheckState)
 	{
 		
 		std::wstring top_level_path = removeLastFolder(selected_path);
@@ -162,7 +170,7 @@ namespace big4
 		}
 
 		// Write Header.
-		Big4Header header = write_init_header_section(toc_compatible_filepaths, outfile);
+		Big4Header header = write_init_header_section(toc_compatible_filepaths, Big4IsBigFCheckState, outfile);
 
 		// Write TOC entries.
 		auto Big4Toc_vector = write_toc_section(toc_compatible_filepaths, outfile, filepaths);

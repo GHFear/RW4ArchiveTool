@@ -18,13 +18,13 @@ namespace Big4PackerWindow
     HWND hTab = {};
     HMENU hContextMenuBig4Packer;
     bool Big4CompressionCheckState = false;
+    bool Big4IsBigFCheckState = false;
 
     // Identifier for the new window class
 #define BIG4_PACKER_WINDOW_CLASS L"Big4PackerWinClass"
 
 
-    auto SaveFileDialog(HWND hwnd)
-    {
+    auto SaveFileDialog(HWND hwnd) {
         OPENFILENAME ofn;
         WCHAR szFileName[MAX_PATH] = L"";
         std::wstring save_bigfile_path;
@@ -39,8 +39,7 @@ namespace Big4PackerWindow
         ofn.Flags = OFN_OVERWRITEPROMPT;
         ofn.lpstrDefExt = L"big"; 
 
-        if (GetSaveFileName(&ofn))
-        {
+        if (GetSaveFileName(&ofn)) {
             // The selected file name is in szFileName
             save_bigfile_path = szFileName;
             return RESULT{ true, save_bigfile_path };
@@ -49,23 +48,18 @@ namespace Big4PackerWindow
         return RESULT{ false, save_bigfile_path };
     }
 
-    bool build_big4_setup(HWND hwnd, bool Big4CompressionCheckState, std::wstring save_bigfile_path)
-    {
-        if (loaded_files_big4.empty())
-        {
+    bool build_big4_setup(HWND hwnd, std::wstring save_bigfile_path) {
+        if (loaded_files_big4.empty()) {
             MessageBox(hwnd, L"No files are loaded!", L"Packer Prompt", MB_OK | MB_ICONINFORMATION);
             return false;
         }
-        else
-        {
+        else {
 
-            if (!big4::bundlebig4(loaded_files_big4, selected_path, Big4CompressionCheckState, save_bigfile_path))
-            {
+            if (!big4::bundlebig4(loaded_files_big4, selected_path, Big4CompressionCheckState, save_bigfile_path, Big4IsBigFCheckState)) {
                 MessageBox(hwnd, L"Failed to build BIG4 archive!", L"Packer Prompt", MB_OK | MB_ICONINFORMATION);
                 return false;
             }
-            else
-            {
+            else {
                 MessageBox(hwnd, L"Successfully built BIG4 archive!", L"Packer Prompt", MB_OK | MB_ICONINFORMATION);
                 return true;
             }
@@ -73,22 +67,24 @@ namespace Big4PackerWindow
         return true;
     }
 
-    bool load_files_into_listview(HWND hwnd)
-    {
-        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-        auto openfolder_results = OpenFolder(hwnd);
-        
-        if (!openfolder_results.all_files_in_subfolders.empty())
-        {
-            loaded_files_big4 = openfolder_results.all_files_in_subfolders;
-            selected_path = openfolder_results.selected_path;
-            UpdateBig4PackerFilepathView(hwndListView_Big4_InFiles, loaded_files_big4, selected_path);
-            CoUninitialize();
-            return true;
+    bool load_files_into_listview(HWND hwnd) {
+        HRESULT hRes = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        if (hRes == S_OK) {
+            auto openfolder_results = OpenFolder(hwnd);
+
+            if (!openfolder_results.all_files_in_subfolders.empty()) {
+                loaded_files_big4 = openfolder_results.all_files_in_subfolders;
+                selected_path = openfolder_results.selected_path;
+                UpdateBig4PackerFilepathView(hwndListView_Big4_InFiles, loaded_files_big4, selected_path);
+                CoUninitialize();
+                return true;
+            }
+            else {
+                CoUninitialize();
+                return false;
+            }
         }
-        else
-        {
-            CoUninitialize();
+        else {
             return false;
         }
     }
@@ -105,9 +101,157 @@ namespace Big4PackerWindow
         return false;
     }
 
+    void NotifyListViewNMHDRCodeLogic(NMHDR* pnmhdr, HWND hwnd) {
+        switch (pnmhdr->code)
+        {
+            case NM_RCLICK:
+            {
+                // Get the cursor position
+                POINT cursor;
+                GetCursorPos(&cursor);
+
+                // Track the context menu
+                TrackPopupMenu(hContextMenuBig4Packer, TPM_LEFTALIGN | TPM_TOPALIGN, cursor.x, cursor.y, 0, hwnd, NULL);
+                break;
+            }
+        }
+
+        return;
+    }
+
+    // Set what happens when we open the settings tab.
+    bool NotifySettingsTabSelectionLogic(NMHDR* pnmhdr, HWND hCheckbox, HWND hCheckbox2) {
+        if (pnmhdr->code == TCN_SELCHANGE) {
+            // Show/hide ListViews based on the selected tab
+            int currentTab = TabCtrl_GetCurSel(hTab);
+            ShowWindow(hwndListView_Big4_InFiles, (currentTab == 0) ? SW_SHOW : SW_HIDE);
+            ShowWindow(hCheckbox, (currentTab == 1) ? SW_SHOW : SW_HIDE);
+            ShowWindow(hCheckbox2, (currentTab == 1) ? SW_SHOW : SW_HIDE);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    // Check state for Big4CompressionCheckState and set checkbox to whatever we last selected on creation of the window.
+    bool IsCompressedCheckState(bool Big4CompressionCheckState, HWND hCheckbox) {
+        // Set compression check state
+        if (Big4CompressionCheckState == true) {
+            SendMessage(hCheckbox, BM_SETCHECK, BST_CHECKED, 0);
+            return true;
+        }
+        else {
+            SendMessage(hCheckbox, BM_SETCHECK, BST_UNCHECKED, 0);
+            return false;
+        }
+    }
+
+    // Check state for Big4IsBigFCheckState and set checkbox to whatever we last selected on creation of the window.
+    bool IsBigFCheckState(bool Big4IsBigFCheckState, HWND hCheckbox2) {
+        // Set compression check state
+        if (Big4IsBigFCheckState == true) {
+            SendMessage(hCheckbox2, BM_SETCHECK, BST_CHECKED, 0);
+            return true;
+        }
+        else {
+            SendMessage(hCheckbox2, BM_SETCHECK, BST_UNCHECKED, 0);
+            return false;
+        }
+    }
+
+    // Open a folder dialog and draw menu items based on selection.
+    bool OpenFolderDialogButtonLogic(HWND hwnd) {
+        if (load_files_into_listview(hwnd)) {
+            // Enable or disable the menu item dynamically
+            EnableMenuItem(hContextMenuBig4Packer, ID_BIG4PACKER_CLEARLIST_CONTEXTBTN, MF_BYCOMMAND | (true ? MF_ENABLED : MF_GRAYED));
+            EnableMenuItem(hContextMenuBig4Packer, ID_BIG4PACKER_BUILD_CONTEXTBTN, MF_BYCOMMAND | (true ? MF_ENABLED : MF_GRAYED));
+            DrawMenuBar(hwnd);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    // Open a savefile dialog and build the BIG4 / BIGF based on your dialog selection.
+    bool BuildBig4ArchiveButtonLogic(HWND hwnd) {
+        auto save_big4_information = SaveFileDialog(hwnd);
+
+        if (save_big4_information.bDidWeSelect) {
+            build_big4_setup(hwnd, save_big4_information.save_bigfile_path);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    // Clear the listview and filename vector.
+    bool ClearListViewButtonLogic(HWND hwnd) {
+        if (loaded_files_big4.empty()) {
+            MessageBox(NULL, L"List is already empty!", L"Error", MB_OK | MB_ICONINFORMATION);
+            return false;
+        }
+        else {
+            //Clear listview and filename vector
+            loaded_files_big4.clear();
+            ListView_DeleteAllItems(hwndListView_Big4_InFiles);
+            // Enable or disable the menu item dynamically
+            EnableMenuItem(hContextMenuBig4Packer, ID_BIG4PACKER_CLEARLIST_CONTEXTBTN, MF_BYCOMMAND | (false ? MF_ENABLED : MF_GRAYED));
+            EnableMenuItem(hContextMenuBig4Packer, ID_BIG4PACKER_BUILD_CONTEXTBTN, MF_BYCOMMAND | (false ? MF_ENABLED : MF_GRAYED));
+            DrawMenuBar(hwnd);
+            return true;
+        }
+    }
+
+    // The actual logic that runs when we check the IsCompressed checkbox.
+    bool IsCompressedCheckedLogic(WPARAM wParam, HWND hwnd) {
+        if (HIWORD(wParam) == BN_CLICKED) {
+            // The checkbox was clicked
+            LRESULT state = SendMessage(GetDlgItem(hwnd, ID_BIG4_ISCOMPRESSED_CHECKBOX), BM_GETCHECK, 0, 0);
+
+            if (state == BST_CHECKED) {
+                // The checkbox is checked
+                Big4CompressionCheckState = true;
+                return true;
+            }
+            else {
+                // The checkbox is unchecked
+                Big4CompressionCheckState = false;
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+    }
+
+    // The actual logic that runs when we check the IsBigFChecked checkbox.
+    bool IsBigFCheckedLogic(WPARAM wParam, HWND hwnd) {
+        if (HIWORD(wParam) == BN_CLICKED) {
+            // The checkbox was clicked
+            LRESULT state = SendMessage(GetDlgItem(hwnd, ID_BIG4_ISBIGF_CHECKBOX), BM_GETCHECK, 0, 0);
+
+            if (state == BST_CHECKED) {
+                // The checkbox is checked
+                Big4IsBigFCheckState = true;
+                return true;
+            }
+            else {
+                // The checkbox is unchecked
+                Big4IsBigFCheckState = false;
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+    }
+
     // Window procedure for CreateBigPacker Window
     LRESULT CALLBACK CreateBig4PackerWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-        static HWND closeButton, maximizeButton, hCheckbox;
+        static HWND closeButton, maximizeButton, hCheckbox, hCheckbox2;
 
         switch (msg) {
         case WM_CREATE: 
@@ -116,7 +260,6 @@ namespace Big4PackerWindow
             // Create close button
             closeButton = CreateWindowEx(0, L"BUTTON", L"X", WS_CHILD | WS_VISIBLE,
                 0, 0, 30, 20, hwnd, (HMENU)IDC_BIG4PACKER_CLOSE_BUTTON, GetModuleHandle(NULL), NULL);
-
 
             // Create the tab control
             hTab = CreateWindow(
@@ -155,27 +298,25 @@ namespace Big4PackerWindow
 
             // Set up columns in the ListView
             LVCOLUMN lvc1 = {};
-
             lvc1.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
             lvc1.cx = 1280; // Width of the column
             lvc1.pszText = (LPWSTR)L"File Path";
             lvc1.iSubItem = 0;
             ListView_InsertColumn(hwndListView_Big4_InFiles, 0, &lvc1);
 
-            // Create a checkbox inside the first tab
+            // Create a checkbox inside the second tab
             hCheckbox = CreateWindowEx(NULL, 
-                L"BUTTON", L"There are compressed files in this archive. ( Check this even if there is only 1 )", WS_CHILD | WS_VISIBLE | BS_CHECKBOX | BS_AUTOCHECKBOX,
+                L"BUTTON", L"Contains 1 or more Refpack compressed files.", WS_CHILD | WS_VISIBLE | BS_CHECKBOX | BS_AUTOCHECKBOX,
                 20, 20, 100, 20, hwnd, (HMENU)ID_BIG4_ISCOMPRESSED_CHECKBOX, NULL, NULL);
 
-            // Set compression check state
-            if (Big4CompressionCheckState == true)
-            {
-                SendMessage(hCheckbox, BM_SETCHECK, BST_CHECKED, 0);
-            }
-            else
-            {
-                SendMessage(hCheckbox, BM_SETCHECK, BST_UNCHECKED, 0);
-            }
+            // Create a checkbox inside the second tab
+            hCheckbox2 = CreateWindowEx(NULL,
+                L"BUTTON", L"Build as BIGF", WS_CHILD | WS_VISIBLE | BS_CHECKBOX | BS_AUTOCHECKBOX,
+                20, 20, 100, 20, hwnd, (HMENU)ID_BIG4_ISBIGF_CHECKBOX, NULL, NULL);
+
+            // Set checkboxes to hidden in tab 0.
+            ShowWindow(hCheckbox, SW_HIDE);
+            ShowWindow(hCheckbox2, SW_HIDE);
 
             // Create context menu and set the member menu items
             hContextMenuBig4Packer = CreatePopupMenu();
@@ -183,8 +324,13 @@ namespace Big4PackerWindow
             AppendMenu(hContextMenuBig4Packer, MF_STRING, ID_BIG4PACKER_BUILD_CONTEXTBTN, L"Build");
             AppendMenu(hContextMenuBig4Packer, MF_STRING, ID_BIG4PACKER_CLEARLIST_CONTEXTBTN, L"Clear List");
 
+            // Check for load and setting states.
+            IsCompressedCheckState(Big4CompressionCheckState, hCheckbox);
+            IsBigFCheckState(Big4IsBigFCheckState, hCheckbox2);
+            // Check for load and setting states.
             if (!loaded_files_big4.empty())
             {
+                // Enable controls
                 UpdateBig4PackerFilepathView(hwndListView_Big4_InFiles, loaded_files_big4, selected_path);
                 EnableMenuItem(hContextMenuBig4Packer, ID_BIG4PACKER_CLEARLIST_CONTEXTBTN, MF_BYCOMMAND | (true ? MF_ENABLED : MF_GRAYED));
                 EnableMenuItem(hContextMenuBig4Packer, ID_BIG4PACKER_BUILD_CONTEXTBTN, MF_BYCOMMAND | (true ? MF_ENABLED : MF_GRAYED));
@@ -192,12 +338,11 @@ namespace Big4PackerWindow
             }
             else
             {
+                // Disable controls
                 EnableMenuItem(hContextMenuBig4Packer, ID_BIG4PACKER_CLEARLIST_CONTEXTBTN, MF_BYCOMMAND | (false ? MF_ENABLED : MF_GRAYED));
                 EnableMenuItem(hContextMenuBig4Packer, ID_BIG4PACKER_BUILD_CONTEXTBTN, MF_BYCOMMAND | (false ? MF_ENABLED : MF_GRAYED));
                 DrawMenuBar(hwnd);
             }
-            
-            ShowWindow(hCheckbox, SW_HIDE);
             
             break;
         }
@@ -211,36 +356,15 @@ namespace Big4PackerWindow
         case WM_NOTIFY:
         {
             NMHDR* pnmhdr = (NMHDR*)lParam;
-            int currentTab = TabCtrl_GetCurSel(hTab);
+            
             if (pnmhdr->idFrom == IDC_TAB_CONTROL)
             {
-                
-                if (pnmhdr->code == TCN_SELCHANGE)
-                {
-                    // Show/hide ListViews based on the selected tab
-                    ShowWindow(hwndListView_Big4_InFiles, (currentTab == 0) ? SW_SHOW : SW_HIDE);
-                    ShowWindow(hCheckbox, (currentTab == 1) ? SW_SHOW : SW_HIDE);
-                }
-                
+                NotifySettingsTabSelectionLogic(pnmhdr, hCheckbox, hCheckbox2);
             }
 
-            LPNMHDR pnmh = (LPNMHDR)lParam;
-            if (pnmh->idFrom == ID_LIST_VIEW_BIG4_WINDOW)
+            if (pnmhdr->idFrom == ID_LIST_VIEW_BIG4_WINDOW)
             {
-                
-                switch (pnmh->code)
-                {
-                case NM_RCLICK:
-                {
-                    // Get the cursor position
-                    POINT cursor;
-                    GetCursorPos(&cursor);
-
-                    // Track the context menu
-                    TrackPopupMenu(hContextMenuBig4Packer, TPM_LEFTALIGN | TPM_TOPALIGN, cursor.x, cursor.y, 0, hwnd, NULL);
-                    break;
-                }
-                }
+                NotifyListViewNMHDRCodeLogic(pnmhdr, hwnd);
             }
 
             break;
@@ -250,41 +374,18 @@ namespace Big4PackerWindow
             switch (LOWORD(wParam)) {
                 case ID_BIG4PACKER_OPENFOLDER_CONTEXTBTN:
                 {
-                    if (load_files_into_listview(hwnd))
-                    {
-                        // Enable or disable the menu item dynamically
-                        EnableMenuItem(hContextMenuBig4Packer, ID_BIG4PACKER_CLEARLIST_CONTEXTBTN, MF_BYCOMMAND | (true ? MF_ENABLED : MF_GRAYED));
-                        EnableMenuItem(hContextMenuBig4Packer, ID_BIG4PACKER_BUILD_CONTEXTBTN, MF_BYCOMMAND | (true ? MF_ENABLED : MF_GRAYED));
-                        DrawMenuBar(hwnd);
-                    }
+                    OpenFolderDialogButtonLogic(hwnd);
                     break;
                 }
                 case ID_BIG4PACKER_BUILD_CONTEXTBTN:
                 {
-                    auto save_big4_information = SaveFileDialog(hwnd);
-                    
-                    if (save_big4_information.bDidWeSelect)
-                    {
-                        build_big4_setup(hwnd, Big4CompressionCheckState, save_big4_information.save_bigfile_path);
-                    }
+                    BuildBig4ArchiveButtonLogic(hwnd);
                     
                     break;
                 }
                 case ID_BIG4PACKER_CLEARLIST_CONTEXTBTN:
                 {
-                    if (loaded_files_big4.empty())
-                    {
-                        MessageBox(NULL, L"List is already empty!", L"Error", MB_OK | MB_ICONINFORMATION);
-                    }
-                    else
-                    {
-                        loaded_files_big4.clear();
-                        ListView_DeleteAllItems(hwndListView_Big4_InFiles);
-                        // Enable or disable the menu item dynamically
-                        EnableMenuItem(hContextMenuBig4Packer, ID_BIG4PACKER_CLEARLIST_CONTEXTBTN, MF_BYCOMMAND | (false ? MF_ENABLED : MF_GRAYED));
-                        EnableMenuItem(hContextMenuBig4Packer, ID_BIG4PACKER_BUILD_CONTEXTBTN, MF_BYCOMMAND | (false ? MF_ENABLED : MF_GRAYED));
-                        DrawMenuBar(hwnd);
-                    }
+                    ClearListViewButtonLogic(hwnd);
                     break;
                 }
                 case IDC_BIG4PACKER_CLOSE_BUTTON:
@@ -294,23 +395,14 @@ namespace Big4PackerWindow
                 }
                 case ID_BIG4_ISCOMPRESSED_CHECKBOX:
                 {
-                    if (HIWORD(wParam) == BN_CLICKED)
-                    {
-                        // The checkbox was clicked
-                        LRESULT state = SendMessage(GetDlgItem(hwnd, ID_BIG4_ISCOMPRESSED_CHECKBOX), BM_GETCHECK, 0, 0);
-
-                        if (state == BST_CHECKED) {
-                            // The checkbox is checked
-                            Big4CompressionCheckState = true;
-                        }
-                        else {
-                            // The checkbox is unchecked
-                            Big4CompressionCheckState = false;
-                        }
-                    }
+                    IsCompressedCheckedLogic(wParam, hwnd);
                     break;
                 }
-                  
+                case ID_BIG4_ISBIGF_CHECKBOX:
+                {
+                    IsBigFCheckedLogic(wParam, hwnd);
+                    break;
+                }
             }
             break;
         }
@@ -385,7 +477,8 @@ namespace Big4PackerWindow
             MoveWindow(hwndListView_Big4_InFiles, 5, 25, left_listview_width - middle_padding, windowHeight - 36, TRUE);
 
             // Checkboxes
-            MoveWindow(hCheckbox, 15, 25, left_listview_width - middle_padding, 40, TRUE);
+            MoveWindow(hCheckbox, 15, 25, windowWidth - 40, 35, TRUE);
+            MoveWindow(hCheckbox2, 15, 50, windowWidth - 40, 60, TRUE);
 
             // Tabs
             MoveWindow(hTab, 5, 0, windowWidth - 10, windowHeight - outer_border_padding, TRUE);
@@ -401,6 +494,8 @@ namespace Big4PackerWindow
 
             RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE);
             RedrawWindow(hTab, NULL, NULL, RDW_INVALIDATE);
+            RedrawWindow(hCheckbox, NULL, NULL, RDW_INVALIDATE);
+            RedrawWindow(hCheckbox2, NULL, NULL, RDW_INVALIDATE);
             break;
         }
         default:

@@ -81,7 +81,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         HMENU hSubMenuExperimental = CreateMenu();
         HMENU hSubMenuPackers = CreateMenu();
-        AppendMenu(hSubMenuExperimental, MF_STRING, ID_BIG4_PACKER_MENU, TEXT("Build Big4"));
+        AppendMenu(hSubMenuExperimental, MF_STRING, ID_BIG4_PACKER_MENU, TEXT("Build BIG4/BIGF"));
         AppendMenu(hSubMenuExperimental, MF_STRING, ID_BIGEB_PACKER_MENU, TEXT("Build Big(EB)"));
         AppendMenu(hSubMenuExperimental, MF_STRING, ID_SF_PACKER_MENU, TEXT("Build SF"));
         AppendMenu(hSubMenuExperimental, MF_STRING, ID_ARENA_PACKER_MENU, TEXT("Build Arena"));
