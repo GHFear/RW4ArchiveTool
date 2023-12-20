@@ -112,7 +112,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)Archives\Compression\Zlib\Include\zlib-1.3;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Archives\Compression;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -130,7 +130,7 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)Archives\Compression\Zlib\Include\zlib-1.3;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Archives\Compression;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -143,6 +143,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Archives\Compression\refpack\refpackd.h" />
+    <ClInclude Include="Archives\Packers\big4_packer.h" />
     <ClInclude Include="Archives\Parsers\Arena_Parser.h" />
     <ClInclude Include="Archives\Parsers\big4_parser.h" />
     <ClInclude Include="Archives\Parsers\big_eb_parser.h" />
@@ -159,6 +160,7 @@
     <ClInclude Include="Tools\Program\ProgramHandlers.h" />
     <ClInclude Include="Unspecified\FuncTimer.h" />
     <ClInclude Include="Unspecified\Global.h" />
+    <ClInclude Include="Windows\Big4PackerWindow.h" />
     <ClInclude Include="Windows\FindWindow.h" />
     <ClInclude Include="Archives\Compression\Zlib\Include\zlib-1.3\zconf.h" />
     <ClInclude Include="Archives\Compression\Zlib\Include\zlib-1.3\zlib.h" />

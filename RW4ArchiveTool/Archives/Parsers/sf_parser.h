@@ -1,6 +1,6 @@
 // EA Skate SF Parser By GHFear.
 #pragma once
-#include "../Compression/refpack/refpackd.h"
+#include "refpack/refpackd.h"
 #include "../Structs/SF_Structs.h"
 #include "../../Tools/Paths/Paths.h"
 #include "../Tools/big_endian_tools.h"

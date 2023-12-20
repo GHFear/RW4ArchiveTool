@@ -1,8 +1,17 @@
 #pragma once
+#include <ShObjIdl.h>
 #include "../../Unspecified/Global.h"
 #include "../Paths/Paths.h"
 #include <codecvt>
 #include <locale>
+#include <shobjidl_core.h>
+#include <shlobj.h>
+#include <ShObjIdl.h>
+#include <ShlObj.h>
+#include <atlbase.h>
+#include <stack>
+#include <atlalloc.h>
+#include <propsys.h>
 
 void UpdateWindowTitle(const std::wstring& fileName);
 
@@ -447,4 +456,169 @@ void OpenFileAndLoadBuffer(HWND hwnd) {
     {
         UpdateArchiveView(hwnd, file);
     }
+}
+
+std::vector<std::wstring> EnumerateFolder(IShellFolder* folder) {
+
+    std::vector<std::wstring> filepath_wstring_vector = {};
+    std::stack<IShellFolder*> folderStack;
+
+    folderStack.push(folder);
+
+    while (!folderStack.empty()) {
+        IShellFolder* currentFolder = folderStack.top();
+        folderStack.pop();
+
+        IEnumIDList* enumItems;
+        HRESULT hr = currentFolder->EnumObjects(NULL, SHCONTF_FOLDERS | SHCONTF_NONFOLDERS, &enumItems);
+        if (hr != S_OK) {
+            std::wcerr << L"Failed to get enumerator: " << hr << std::endl;
+            return filepath_wstring_vector;
+        }
+
+        PITEMID_CHILD pItem;
+        while (enumItems->Next(1, &pItem, NULL) == S_OK && pItem) {
+            STRRET strRet;
+            WCHAR szDisplayName[MAX_PATH];
+            hr = currentFolder->GetDisplayNameOf(pItem, SIGDN_FILESYSPATH, &strRet);
+            if (hr == S_OK) {
+                StrRetToBuf(&strRet, pItem, szDisplayName, MAX_PATH);
+                std::wcout << L"Item: " << szDisplayName << std::endl;
+            }
+            else {
+                std::wcerr << L"Failed to get display name: " << hr << std::endl;
+            }
+
+            // Check if the item is a folder and add it to the stack for processing
+            SFGAOF attributes = SFGAO_FOLDER;
+            hr = currentFolder->GetAttributesOf(1, (PCUITEMID_CHILD*)&pItem, &attributes);
+            if (hr == S_OK && (attributes & SFGAO_FOLDER)) {
+                IShellFolder* pSubFolder;
+                hr = currentFolder->BindToObject(pItem, NULL, IID_IShellFolder, (void**)&pSubFolder);
+                if (hr == S_OK) {
+                    folderStack.push(pSubFolder);
+                }
+            }
+            else
+            {
+                if (szDisplayName != nullptr)
+                {
+                    std::wstring filepath_wstring = szDisplayName;
+                    filepath_wstring_vector.push_back(filepath_wstring);
+                }
+            }
+
+            CoTaskMemFree(pItem);
+        }
+
+        enumItems->Release();
+    }
+
+    return filepath_wstring_vector;
+}
+
+auto OpenFolder(HWND hwnd) {
+
+    struct RESULT { std::vector<std::wstring> all_files_in_subfolders; std::wstring selected_path; };
+
+    std::vector<std::wstring> filepath_wstring_vector = {};
+    std::wstring selected_path = L"";
+    IFileDialog* pfd;
+    HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
+    if (hr != S_OK) {
+        std::wcerr << L"Failed to create FileOpenDialog: " << hr << std::endl;
+        return RESULT{ filepath_wstring_vector, selected_path };
+    }
+
+    DWORD dwOptions;
+    hr = pfd->GetOptions(&dwOptions);
+    if (hr != S_OK) {
+        std::wcerr << L"Failed to get options: " << hr << std::endl;
+        pfd->Release();
+        return RESULT{ filepath_wstring_vector, selected_path };
+    }
+
+    hr = pfd->SetOptions(dwOptions | FOS_PICKFOLDERS);
+    if (hr != S_OK) {
+        std::wcerr << L"Failed to set options: " << hr << std::endl;
+        pfd->Release();
+        return RESULT{ filepath_wstring_vector, selected_path };
+    }
+
+    // Show the dialog
+    if (pfd->Show(hwnd) == S_OK) {
+        IShellItem* psi;
+        if (pfd->GetResult(&psi) == S_OK) {
+            IShellFolder* pFolder;
+            WCHAR szPath[MAX_PATH];
+            hr = psi->BindToHandler(NULL, BHID_SFObject, IID_IShellFolder, (void**)&pFolder);
+            if (hr == S_OK) {
+                PWSTR pszPath;
+                hr = psi->GetDisplayName(SIGDN_FILESYSPATH, &pszPath);
+                if (SUCCEEDED(hr)) {
+                    // Free the allocated memory
+                    filepath_wstring_vector = EnumerateFolder(pFolder);
+                    selected_path = pszPath;
+                    CoTaskMemFree(pszPath);
+                }
+                
+                pFolder->Release();
+            }
+            else {
+                std::wcerr << L"Failed to get shell folder: " << hr << std::endl;
+            }
+            psi->Release();
+        }
+        else {
+            std::wcerr << L"Failed to get result from FileOpenDialog." << std::endl;
+        }
+    }
+    else {
+        std::wcerr << L"User canceled or an error occurred during FileOpenDialog." << std::endl;
+    }
+
+    pfd->Release();
+
+    return RESULT{ filepath_wstring_vector, selected_path };
+}
+
+
+// Function to update the ListView1 with Archive information
+void UpdateBig4PackerFilepathView(HWND hwnd, std::vector<std::wstring> arg_filepath_vector, std::wstring selected_path)
+{
+
+    ListView_DeleteAllItems(hwnd);
+
+    // Set redraw to false to save many instuctions.
+    SendMessage(hwnd, WM_SETREDRAW, FALSE, 0);
+
+    // Iterate through the vector and add each struct's information to the ListView
+    LVITEM lvItem;
+    memset(&lvItem, 0, sizeof(LVITEM));
+    lvItem.mask = LVIF_TEXT;
+
+    std::wstring top_level_path = removeLastFolder(selected_path);
+
+    for (size_t i = 0; i < arg_filepath_vector.size(); ++i)
+    {
+
+        std::wstring TOC_Compatible_Path = arg_filepath_vector[i];
+        size_t pos = TOC_Compatible_Path.find(top_level_path);
+
+        if (pos != std::wstring::npos) {
+            TOC_Compatible_Path = make_big_compatible_paths(pos, top_level_path, TOC_Compatible_Path);
+            // Add the index to the first column
+            lvItem.iItem = i;
+            lvItem.iSubItem = 0;
+            lvItem.pszText = LPSTR_TEXTCALLBACK;
+            ListView_InsertItem(hwnd, &lvItem);
+            ListView_SetItemText(hwnd, i, 0, const_cast<LPWSTR>(TOC_Compatible_Path.c_str()));
+        }
+        else {
+            std::wcout << L"Substring not found." << std::endl;
+        }
+    }
+    // Set redraw to true after adding items.
+    SendMessage(hwnd, WM_SETREDRAW, TRUE, 0);
+    InvalidateRect(hwnd, NULL, TRUE);
 }

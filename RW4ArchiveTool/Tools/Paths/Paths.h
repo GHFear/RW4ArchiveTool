@@ -18,6 +18,46 @@ std::wstring to_wstring(const std::string StringToConvert)
     return wideString;
 }
 
+std::wstring removeLastFolder(const std::wstring& path) {
+    // Find the last occurrence of the path separator
+    size_t pos = path.find_last_of(L'\\');
+
+    // Check if the path separator is found
+    if (pos != std::wstring::npos) {
+        // Extract the substring excluding the last folder
+        return path.substr(0, pos);
+    }
+    else {
+        // Return an empty string or the original string if there is no path separator
+        return path;
+    }
+}
+
+std::wstring replaceBackslashesWithForward(const std::wstring& path) {
+    std::wstring modifiedPath = path;
+
+    // Find and replace all occurrences of double backslashes with forward slashes
+    size_t pos = modifiedPath.find(L"\\");
+    while (pos != std::wstring::npos) {
+        modifiedPath.replace(pos, 1, L"/");  // Replace 2 characters with a forward slash
+        pos = modifiedPath.find(L"\\", pos + 1);  // Find the next occurrence
+    }
+
+    return modifiedPath;
+}
+
+std::wstring removeFirstForwardSlash(const std::wstring& path) {
+    std::wstring modifiedPath = path;
+
+    // Check if the path starts with a forward slash
+    if (!modifiedPath.empty() && modifiedPath[0] == L'/') {
+        // Erase the first character (forward slash)
+        modifiedPath.erase(0, 1);
+    }
+
+    return modifiedPath;
+}
+
 std::pair<std::wstring, std::vector<std::wstring>> ParseMultiFilePath(const _TCHAR* multiFilePath) {
     std::vector<std::wstring> fileNames;
     std::wstring directory;
@@ -107,4 +147,33 @@ const wchar_t* GetFilenameWithoutExtension(const wchar_t* filepath) {
 
     // No extension found, return the whole filename
     return lastBackslash != nullptr ? lastBackslash + 1 : filepath;
+}
+
+
+std::string WideStringToString(std::wstring wstr)
+{
+
+    // Calculate the required size for the buffer
+    int size = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);
+
+    // Allocate a buffer
+    char* buffer = new char[size];
+
+    // Convert wstring to string
+    WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, buffer, size, nullptr, nullptr);
+    std::string str(buffer);
+
+    // Clean up the buffer
+    delete[] buffer;
+
+    return str;
+}
+
+std::wstring make_big_compatible_paths(const size_t& pos, const std::wstring& top_level_path, const std::wstring& input_wstring)
+{
+    std::wstring temp_wstring = input_wstring;
+    temp_wstring.erase(pos, top_level_path.length());
+    temp_wstring = replaceBackslashesWithForward(temp_wstring);
+    temp_wstring = removeFirstForwardSlash(temp_wstring);
+    return temp_wstring;
 }

@@ -8,6 +8,10 @@
 
 namespace big4
 {
+
+    // There seems to be no way to set alignment on big4, so don't bother with it.
+    // You decide where the data starts and just point to it with the offset in Big4Fat.
+    // But the original packers aligns it with blocks of 64 bytes, so do that. :)
     struct Big4Header
     {
         char magic[4];
@@ -18,8 +22,23 @@ namespace big4
 
     struct Big4Fat
     {
-        uint32_t offset, size;
+        uint32_t offset;
+        uint32_t size;
         char filename[256];
+    };
+
+    struct Big4HeaderTailSettings
+    {
+        char Version[4];
+        uint16_t DJBHashKey;
+        uint16_t bIsCompressed;
+    };
+
+    struct ParsedBig4Struct
+    {
+        Big4Header header;
+        std::vector<Big4Fat> toc;
+        Big4HeaderTailSettings tail_settings;
     };
 
 
@@ -99,6 +118,8 @@ namespace big4
         // Declare local variables.
         FILE* archive = nullptr;
         std::vector<Archive_Parse_Struct> Archive_Parse_Struct_vector = {};
+
+        ParsedBig4Struct parsed_big4_struct = {};
         Big4Header big4_header = {};
 
         _wfopen_s(&archive, archiveName, L"rb");
@@ -127,6 +148,8 @@ namespace big4
             return RESULT{ Archive_Parse_Struct_vector , false };
         }
 
+        parsed_big4_struct.header = big4_header;
+
         for (size_t i = 0; i < big4_header.number_files; i++)
         {
             std::wstring wide_archiv_path = archiveName;
@@ -151,6 +174,8 @@ namespace big4
                 fclose(archive);
                 return RESULT{ Archive_Parse_Struct_vector , false };
             }
+
+            parsed_big4_struct.toc.push_back(big4_fat);
             
             // Get filename length.
             size_t filename_length = 0;
@@ -224,7 +249,14 @@ namespace big4
             _fseeki64(archive, next_toc_offset, SEEK_SET);
         }
 
-        fclose(archive);
-        return RESULT{ Archive_Parse_Struct_vector , true };
+        // Get parse the last settings details.
+        Big4HeaderTailSettings big4header_tail_settings = {};
+        fread(&big4header_tail_settings, sizeof(big4header_tail_settings), 1, archive);
+        big4header_tail_settings.bIsCompressed = BigToLittleUINT(big4header_tail_settings.bIsCompressed);
+        big4header_tail_settings.DJBHashKey = BigToLittleUINT(big4header_tail_settings.DJBHashKey);
+        parsed_big4_struct.tail_settings = big4header_tail_settings;
+
+        fclose(archive); 
+        return RESULT{ Archive_Parse_Struct_vector, true };
     }
 }

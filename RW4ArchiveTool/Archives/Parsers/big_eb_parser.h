@@ -1,8 +1,8 @@
 // EA Skate EB Parser By GHFear.
 
 #pragma once
-#include "Archives/Compression/refpack/refpackd.h"
-#include <zlib.h>
+#include "refpack/refpackd.h"
+#include "Zlib/Include/zlib-1.3/zlib.h"
 #include "../Structs/SF_Structs.h"
 #include "../../Tools/Paths/Paths.h"
 #include "../Tools/big_endian_tools.h"

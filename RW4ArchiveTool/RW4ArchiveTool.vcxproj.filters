@@ -59,6 +59,8 @@
       <Filter>Headers\Windows</Filter>
     </ClInclude>
     <ClInclude Include="Archives\IoTools\IoTools.h" />
+    <ClInclude Include="Archives\Packers\big4_packer.h" />
+    <ClInclude Include="Windows\Big4PackerWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\RW4ArchiveTool.ico">

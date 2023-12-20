@@ -6,12 +6,15 @@
 #include "Archives/Parsers/sf_parser.h"
 #include "Archives/Parsers/big_eb_parser.h"
 #include "Archives/Parsers/big4_parser.h"
+#include "Archives/Packers/big4_packer.h"
 #include "Archives/Parsers/Arena_Parser.h"
 #include "Tools/Program/ProgramHandlers.h"
 #include "Windows/FindWindow.h"
+#include "Windows/Big4PackerWindow.h"
 
 
 // Function prototypes
+std::vector<Archive_Parse_Struct> parsed_archive = {};
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 // Entry point of the program
@@ -37,7 +40,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
     }
 
     // Create the main window.
-    hwndMain = CreateWindow(szAppName, szAppName, WS_OVERLAPPEDWINDOW,
+    hwndMain = CreateWindow(szAppName, szAppName, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         NULL, NULL, hInstance, NULL);
 
@@ -56,7 +59,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR szCmdLine,
 
 // Window procedure.
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    
+
     switch (message) {
     case WM_CREATE:
     {
@@ -76,12 +79,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         AppendMenu(hSubMenu2, MF_STRING, ID_FIND_IN_FILES, TEXT("Find In Files"));
         AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenu2, TEXT("Find"));
 
+        HMENU hSubMenuExperimental = CreateMenu();
+        HMENU hSubMenuPackers = CreateMenu();
+        AppendMenu(hSubMenuExperimental, MF_STRING, ID_BIG4_PACKER_MENU, TEXT("Build Big4"));
+        AppendMenu(hSubMenuExperimental, MF_STRING, ID_BIGEB_PACKER_MENU, TEXT("Build Big(EB)"));
+        AppendMenu(hSubMenuExperimental, MF_STRING, ID_SF_PACKER_MENU, TEXT("Build SF"));
+        AppendMenu(hSubMenuExperimental, MF_STRING, ID_ARENA_PACKER_MENU, TEXT("Build Arena"));
+        AppendMenu(hMenu, MF_STRING | MF_POPUP, (UINT)hSubMenuExperimental, TEXT("Experimental"));
+
         // Assign the menu to the window
         SetMenu(hwnd, hMenu);
 
         // Create a ListView to display file information
         hwndListView = CreateWindow(WC_LISTVIEW, NULL,
-            WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT | LVS_SHOWSELALWAYS,
+            WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT | LVS_SHOWSELALWAYS | WS_CLIPSIBLINGS,
             0, 0, 0, 0, hwnd, (HMENU)ID_LIST_VIEW, GetModuleHandle(NULL), NULL);
 
         // Set the extended style
@@ -134,7 +145,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         // Create a ListView to display file information
         hwndListView2 = CreateWindow(WC_LISTVIEW, NULL,
-            WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL,
+            WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_CLIPSIBLINGS,
             0, 0, 0, 0, hwnd, (HMENU)ID_LIST_VIEW2, GetModuleHandle(NULL), NULL);
 
         // Set the extended style
@@ -183,8 +194,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
         // Create a ListView to display file information
         hwndListView3 = CreateWindow(WC_LISTVIEW, NULL,
-            WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL,
-            0, 0, 0, 0, hwnd, (HMENU)ID_LIST_VIEW, GetModuleHandle(NULL), NULL);
+            WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_CLIPSIBLINGS,
+            0, 0, 0, 0, hwnd, (HMENU)ID_LIST_VIEW3, GetModuleHandle(NULL), NULL);
 
         // Set the extended style
         ListView_SetExtendedListViewStyle(hwndListView3, LVS_EX_DOUBLEBUFFER | LVS_EX_FULLROWSELECT);
@@ -259,6 +270,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         MoveWindow(hwndListView, 5, 0, left_listview_width - middle_padding, windowHeight - outer_border_padding, TRUE);
         MoveWindow(hwndListView2, right_top_listview_width, 0, right_top_listview_width - outer_border_padding, right_top_listview_height - right_divider_padding, TRUE);
         MoveWindow(hwndListView3, left_listview_width, right_top_listview_height, right_bottom_listview_width - outer_border_padding, right_bottom_listview_height - outer_border_padding, TRUE);
+
+        SendMessage(Big4PackerWindow::hwnd_CreateBigPacker, WM_SIZE, wParam, lParam);
+
         break;
     }
     case WM_NOTIFY:
@@ -383,8 +397,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
         case ID_FIND_IN_FILES:
-            CreateFindInFilesWindow();
-            //MessageBox(hwnd, L"This feature hasn't been implemented just yet ;)", L"Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+            FindFileWindow::CreateFindInFilesWindow(parsed_archive);
+            break;
+        case ID_BIG4_PACKER_MENU:
+            Big4PackerWindow::CreateBig4PackerWindow(hwnd);
+            break;
+        case ID_BIGEB_PACKER_MENU:
+            MessageBox(hwnd, L"This feature hasn't been implemented just yet ;)", L"Packer Prompt", MB_OK | MB_ICONINFORMATION);
+            break;
+        case ID_SF_PACKER_MENU:
+            MessageBox(hwnd, L"This feature hasn't been implemented just yet ;)", L"Packer Prompt", MB_OK | MB_ICONINFORMATION);
+            break;
+        case ID_ARENA_PACKER_MENU:
+            MessageBox(hwnd, L"This feature hasn't been implemented just yet ;)", L"Packer Prompt", MB_OK | MB_ICONINFORMATION);
             break;
         case ID_FILE_OPEN:
             OpenFileAndLoadBuffer(hwnd);
