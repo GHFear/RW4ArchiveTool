@@ -15,6 +15,7 @@
 
 **Packing Support:** <br>
 -BIG ( "BIG4" Archive ) <br>
+-BIG ( "BIGF" Archive ) <br>
 
 **(Compression types supported)** <br>
 -None <br>
