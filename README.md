@@ -33,6 +33,7 @@
 -Big (EB) Packing <br>
 -Arena packing <br>
 -StreamFile packing <br>
+-EA Skate savefile parsing, unpacking and packing. (MC02 hashed saves)
 
 **List of games that this tool has been confirmed to work with:** <br>
 -Skate 1 | PS3 | Xbox 360 <br>
