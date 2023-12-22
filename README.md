@@ -30,6 +30,9 @@
 **Features I need to add:** <br>
 -Settings menu where you can force parse type and do other important things like setting the different struct types and values manually. <br>
 -Open FileDialog to select output path when unpacking files. <br>
+-Big (EB) Packing <br>
+-Arena packing <br>
+-StreamFile packing <br>
 
 **List of games that this tool has been confirmed to work with:** <br>
 -Skate 1 | PS3 | Xbox 360 <br>
