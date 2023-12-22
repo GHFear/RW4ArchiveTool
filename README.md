@@ -16,6 +16,7 @@
 **Packing Support:** <br>
 -BIG ( "BIG4" Archive ) <br>
 -BIG ( "BIGF" Archive ) <br>
+-Viv4 ( "BIG4 and BIGF" Header file ) <br>
 
 **(Compression types supported)** <br>
 -None <br>
