@@ -22,6 +22,16 @@ std::wstring to_wstring(const std::string StringToConvert)
     return wideString;
 }
 
+bool isFileEmpty(const std::string& filePath) {
+    try {
+        return fs::file_size(filePath) == 0;
+    }
+    catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+        return false;
+    }
+}
+
 std::wstring removeLastFolder(const std::wstring& path) {
     // Find the last occurrence of the path separator
     size_t pos = path.find_last_of(L'\\');

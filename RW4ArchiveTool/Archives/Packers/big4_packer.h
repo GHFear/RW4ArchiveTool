@@ -320,23 +320,26 @@ namespace big4
 
 		// Write files to archive.
 		for (size_t i = 0; i < filepaths.size(); i++) {
+			uint32_t file_offset = static_cast<uint32_t>(outfile.tellp());
+			offset_vector.push_back(file_offset);
 
-			std::ifstream infile(filepaths[i], std::ios::binary);
-			if (infile.is_open()) {
-				uint32_t file_offset = static_cast<uint32_t>(outfile.tellp());
-				offset_vector.push_back(file_offset);
-				outfile << infile.rdbuf();
-				infile.close();
-			}
-			else {
-				std::cerr << "Error: Unable to open file: " << filepaths[i] << std::endl;
-				return false;
-			}
-
-			// Add padding to the next index evenly divisible by 64 (if we need to)
-			if (i < filepaths.size() - 1)
+			if (!isFileEmpty(filepaths[i]))
 			{
-				addPadding(outfile);
+				std::ifstream infile(filepaths[i], std::ios::binary);
+				if (infile.is_open()) {
+					outfile << infile.rdbuf();
+					infile.close();
+				}
+				else {
+					std::cerr << "Error: Unable to open file: " << filepaths[i] << std::endl;
+					return false;
+				}
+
+				// Add padding to the next index evenly divisible by 64 (if we need to)
+				if (i < filepaths.size() - 1)
+				{
+					addPadding(outfile);
+				}
 			}
 		}
 

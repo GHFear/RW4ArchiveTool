@@ -5,17 +5,17 @@ struct UINTTypeSelector;
 
 template <typename T>
 struct UINTTypeSelector<T, 2> {
-    using Type = int16_t;
+    using Type = uint16_t;
 };
 
 template <typename T>
 struct UINTTypeSelector<T, 4> {
-    using Type = int32_t;
+    using Type = uint32_t;
 };
 
 template <typename T>
 struct UINTTypeSelector<T, 8> {
-    using Type = int64_t;
+    using Type = uint64_t;
 };
 
 template <typename T>
