@@ -159,7 +159,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         ListView_InsertColumn(hwndListView2, 0, &lvc2);
 
         lvc2.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
-        lvc2.cx = 200; 
+        lvc2.cx = 650; 
         lvc2.pszText = (LPWSTR)L"Filename";
         lvc2.iSubItem = 1;
         ListView_InsertColumn(hwndListView2, 1, &lvc2);
