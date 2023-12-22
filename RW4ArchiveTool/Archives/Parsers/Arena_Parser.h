@@ -1,6 +1,7 @@
 // EA Skate Arena Parser By GHFear.
 #pragma once
 #include <filesystem>
+#include "IoTools.h"
 #include "../Structs/SF_Structs.h"
 #include "../../Tools/Paths/Paths.h"
 #include "../Tools/big_endian_tools.h"

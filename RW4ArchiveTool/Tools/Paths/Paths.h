@@ -1,5 +1,9 @@
 #pragma once
 
+#include <filesystem>  // Include this for fs::file_size
+
+namespace fs = std::filesystem;
+
 wchar_t* ConvertCharToWchar(const char* charString) {
     int size_needed = MultiByteToWideChar(CP_UTF8, 0, charString, -1, NULL, 0);
     wchar_t* wideCharString = new wchar_t[size_needed];
@@ -56,6 +60,12 @@ std::wstring removeFirstForwardSlash(const std::wstring& path) {
     }
 
     return modifiedPath;
+}
+
+std::string replaceFileExtension(const std::string& filePath, const std::string& newExtension) {
+    fs::path path(filePath);
+    path.replace_extension(newExtension);
+    return path.string();
 }
 
 std::pair<std::wstring, std::vector<std::wstring>> ParseMultiFilePath(const _TCHAR* multiFilePath) {

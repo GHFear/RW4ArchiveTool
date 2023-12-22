@@ -112,7 +112,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)Archives\Compression;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Archives\Tools;$(ProjectDir)Archives\Compression;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -130,7 +130,7 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)Archives\Compression;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Archives\Tools;$(ProjectDir)Archives\Compression;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -149,7 +149,8 @@
     <ClInclude Include="Archives\Parsers\big_eb_parser.h" />
     <ClInclude Include="Archives\Parsers\magic_parser.h" />
     <ClInclude Include="Archives\Tools\big_endian_tools.h" />
-    <ClInclude Include="Archives\IoTools\IoTools.h" />
+    <ClInclude Include="Archives\Tools\IoTools.h" />
+    <ClInclude Include="Archives\Tools\EAHashes.h" />
     <ClInclude Include="Resources\framework.h" />
     <ClInclude Include="Archives\Structs\SF_Structs.h" />
     <ClInclude Include="rw4_archive_tool.h" />

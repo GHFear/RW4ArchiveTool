@@ -3,6 +3,7 @@
 #pragma once
 #include "refpack/refpackd.h"
 #include "Zlib/Include/zlib-1.3/zlib.h"
+#include "IoTools.h"
 #include "../Structs/SF_Structs.h"
 #include "../../Tools/Paths/Paths.h"
 #include "../Tools/big_endian_tools.h"
@@ -448,7 +449,7 @@ namespace big_eb
             if (!unpack)
             {
                 // Set Parsed_Archive struct members.
-                Parsed_Archive_Struct.filename = filename;
+                Parsed_Archive_Struct.filename = folder + name;
                 Parsed_Archive_Struct.file_size = size_Vector[i];
                 Parsed_Archive_Struct.file_offset = offset_Vector[i];
                 Parsed_Archive_Struct.toc_offset = toc_offset_Vector[i];

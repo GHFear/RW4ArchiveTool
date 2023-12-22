@@ -17,8 +17,7 @@ namespace Big4PackerWindow
     HWND hwndListView_Big4_InFiles = {};
     HWND hTab = {};
     HMENU hContextMenuBig4Packer;
-    bool Big4CompressionCheckState = false;
-    bool Big4IsBigFCheckState = false;
+    big4::Big4Packer_Settings big4_packer_settings = {};
 
     // Identifier for the new window class
 #define BIG4_PACKER_WINDOW_CLASS L"Big4PackerWinClass"
@@ -55,7 +54,7 @@ namespace Big4PackerWindow
         }
         else {
 
-            if (!big4::bundlebig4(loaded_files_big4, selected_path, Big4CompressionCheckState, save_bigfile_path, Big4IsBigFCheckState)) {
+            if (!big4::bundlebig4(loaded_files_big4, selected_path, save_bigfile_path, big4_packer_settings)) {
                 MessageBox(hwnd, L"Failed to build BIG4 archive!", L"Packer Prompt", MB_OK | MB_ICONINFORMATION);
                 return false;
             }
@@ -120,13 +119,14 @@ namespace Big4PackerWindow
     }
 
     // Set what happens when we open the settings tab.
-    bool NotifySettingsTabSelectionLogic(NMHDR* pnmhdr, HWND hCheckbox, HWND hCheckbox2) {
+    bool NotifySettingsTabSelectionLogic(NMHDR* pnmhdr, HWND hCheckbox, HWND hCheckbox2, HWND hCheckbox3) {
         if (pnmhdr->code == TCN_SELCHANGE) {
             // Show/hide ListViews based on the selected tab
             int currentTab = TabCtrl_GetCurSel(hTab);
             ShowWindow(hwndListView_Big4_InFiles, (currentTab == 0) ? SW_SHOW : SW_HIDE);
             ShowWindow(hCheckbox, (currentTab == 1) ? SW_SHOW : SW_HIDE);
             ShowWindow(hCheckbox2, (currentTab == 1) ? SW_SHOW : SW_HIDE);
+            ShowWindow(hCheckbox3, (currentTab == 1) ? SW_SHOW : SW_HIDE);
             return true;
         }
         else {
@@ -156,6 +156,19 @@ namespace Big4PackerWindow
         }
         else {
             SendMessage(hCheckbox2, BM_SETCHECK, BST_UNCHECKED, 0);
+            return false;
+        }
+    }
+
+    // Check state for Is64HashCheckState and set checkbox to whatever we last selected on creation of the window.
+    bool Is64HashCheckState(bool Is64HashCheckState, HWND hCheckbox3) {
+        // Set compression check state
+        if (Is64HashCheckState == true) {
+            SendMessage(hCheckbox3, BM_SETCHECK, BST_CHECKED, 0);
+            return true;
+        }
+        else {
+            SendMessage(hCheckbox3, BM_SETCHECK, BST_UNCHECKED, 0);
             return false;
         }
     }
@@ -213,12 +226,12 @@ namespace Big4PackerWindow
 
             if (state == BST_CHECKED) {
                 // The checkbox is checked
-                Big4CompressionCheckState = true;
+                big4_packer_settings.Big4CompressionCheckState = true;
                 return true;
             }
             else {
                 // The checkbox is unchecked
-                Big4CompressionCheckState = false;
+                big4_packer_settings.Big4CompressionCheckState = false;
                 return false;
             }
         }
@@ -235,12 +248,34 @@ namespace Big4PackerWindow
 
             if (state == BST_CHECKED) {
                 // The checkbox is checked
-                Big4IsBigFCheckState = true;
+                big4_packer_settings.Big4IsBigFCheckState = true;
                 return true;
             }
             else {
                 // The checkbox is unchecked
-                Big4IsBigFCheckState = false;
+                big4_packer_settings.Big4IsBigFCheckState = false;
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+    }
+
+    // The actual logic that runs when we check the IsBigFChecked checkbox.
+    bool Is64HashCheckedLogic(WPARAM wParam, HWND hwnd) {
+        if (HIWORD(wParam) == BN_CLICKED) {
+            // The checkbox was clicked
+            LRESULT state = SendMessage(GetDlgItem(hwnd, ID_BIG4_ISBIGF_CHECKBOX), BM_GETCHECK, 0, 0);
+
+            if (state == BST_CHECKED) {
+                // The checkbox is checked
+                big4_packer_settings.IsHash64CheckState = true;
+                return true;
+            }
+            else {
+                // The checkbox is unchecked
+                big4_packer_settings.IsHash64CheckState = false;
                 return false;
             }
         }
@@ -251,7 +286,7 @@ namespace Big4PackerWindow
 
     // Window procedure for CreateBigPacker Window
     LRESULT CALLBACK CreateBig4PackerWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-        static HWND closeButton, maximizeButton, hCheckbox, hCheckbox2;
+        static HWND closeButton, maximizeButton, hCheckbox, hCheckbox2, hCheckbox3;
 
         switch (msg) {
         case WM_CREATE: 
@@ -299,7 +334,7 @@ namespace Big4PackerWindow
             // Set up columns in the ListView
             LVCOLUMN lvc1 = {};
             lvc1.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
-            lvc1.cx = 1280; // Width of the column
+            lvc1.cx = 2000; // Width of the column
             lvc1.pszText = (LPWSTR)L"File Path";
             lvc1.iSubItem = 0;
             ListView_InsertColumn(hwndListView_Big4_InFiles, 0, &lvc1);
@@ -311,22 +346,30 @@ namespace Big4PackerWindow
 
             // Create a checkbox inside the second tab
             hCheckbox2 = CreateWindowEx(NULL,
-                L"BUTTON", L"Build as BIGF", WS_CHILD | WS_VISIBLE | BS_CHECKBOX | BS_AUTOCHECKBOX,
+                L"BUTTON", L"Build as BIGF  (Default is BIG4)", WS_CHILD | WS_VISIBLE | BS_CHECKBOX | BS_AUTOCHECKBOX,
                 20, 20, 100, 20, hwnd, (HMENU)ID_BIG4_ISBIGF_CHECKBOX, NULL, NULL);
+
+            // Create a checkbox inside the second tab
+            hCheckbox3 = CreateWindowEx(NULL,
+                L"BUTTON", L"64-Bit NameHash  (Default is 32-Bit)", WS_CHILD | WS_VISIBLE | BS_CHECKBOX | BS_AUTOCHECKBOX,
+                20, 20, 100, 20, hwnd, (HMENU)ID_BIG4_IS64HASH_CHECKBOX, NULL, NULL);
 
             // Set checkboxes to hidden in tab 0.
             ShowWindow(hCheckbox, SW_HIDE);
             ShowWindow(hCheckbox2, SW_HIDE);
+            ShowWindow(hCheckbox3, SW_HIDE);
 
             // Create context menu and set the member menu items
             hContextMenuBig4Packer = CreatePopupMenu();
             AppendMenu(hContextMenuBig4Packer, MF_STRING, ID_BIG4PACKER_OPENFOLDER_CONTEXTBTN, L"Open Folder");
-            AppendMenu(hContextMenuBig4Packer, MF_STRING, ID_BIG4PACKER_BUILD_CONTEXTBTN, L"Build");
+            AppendMenu(hContextMenuBig4Packer, MF_STRING, ID_BIG4PACKER_BUILD_CONTEXTBTN, L"Build Archive");
             AppendMenu(hContextMenuBig4Packer, MF_STRING, ID_BIG4PACKER_CLEARLIST_CONTEXTBTN, L"Clear List");
 
             // Check for load and setting states.
-            IsCompressedCheckState(Big4CompressionCheckState, hCheckbox);
-            IsBigFCheckState(Big4IsBigFCheckState, hCheckbox2);
+            IsCompressedCheckState(big4_packer_settings.Big4CompressionCheckState, hCheckbox);
+            IsBigFCheckState(big4_packer_settings.Big4IsBigFCheckState, hCheckbox2);
+            Is64HashCheckState(big4_packer_settings.IsHash64CheckState, hCheckbox3);
+
             // Check for load and setting states.
             if (!loaded_files_big4.empty())
             {
@@ -359,7 +402,7 @@ namespace Big4PackerWindow
             
             if (pnmhdr->idFrom == IDC_TAB_CONTROL)
             {
-                NotifySettingsTabSelectionLogic(pnmhdr, hCheckbox, hCheckbox2);
+                NotifySettingsTabSelectionLogic(pnmhdr, hCheckbox, hCheckbox2, hCheckbox3);
             }
 
             if (pnmhdr->idFrom == ID_LIST_VIEW_BIG4_WINDOW)
@@ -401,6 +444,11 @@ namespace Big4PackerWindow
                 case ID_BIG4_ISBIGF_CHECKBOX:
                 {
                     IsBigFCheckedLogic(wParam, hwnd);
+                    break;
+                }
+                case ID_BIG4_IS64HASH_CHECKBOX:
+                {
+                    Is64HashCheckedLogic(wParam, hwnd);
                     break;
                 }
             }
@@ -478,7 +526,8 @@ namespace Big4PackerWindow
 
             // Checkboxes
             MoveWindow(hCheckbox, 15, 25, windowWidth - 40, 35, TRUE);
-            MoveWindow(hCheckbox2, 15, 50, windowWidth - 40, 60, TRUE);
+            MoveWindow(hCheckbox2, 15, 50, windowWidth - 40, 35, TRUE);
+            MoveWindow(hCheckbox3, 15, 75, windowWidth - 40, 35, TRUE);
 
             // Tabs
             MoveWindow(hTab, 5, 0, windowWidth - 10, windowHeight - outer_border_padding, TRUE);
@@ -496,6 +545,7 @@ namespace Big4PackerWindow
             RedrawWindow(hTab, NULL, NULL, RDW_INVALIDATE);
             RedrawWindow(hCheckbox, NULL, NULL, RDW_INVALIDATE);
             RedrawWindow(hCheckbox2, NULL, NULL, RDW_INVALIDATE);
+            RedrawWindow(hCheckbox3, NULL, NULL, RDW_INVALIDATE);
             break;
         }
         default:

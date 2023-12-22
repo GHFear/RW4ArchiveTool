@@ -2,6 +2,7 @@
 #pragma once
 #include <filesystem>
 #include "Archives/Compression/refpack/refpackd.h"
+#include "IoTools.h"
 #include "../Structs/SF_Structs.h"
 #include "../../Tools/Paths/Paths.h"
 #include "../Tools/big_endian_tools.h"
@@ -201,7 +202,7 @@ namespace big4
             _fseeki64(archive, big4_fat.offset, SEEK_SET); // Seek back to offset
 
             // Set Parsed_Archive struct members.
-            Parsed_Archive_Struct.filename = path.filename().string();
+            Parsed_Archive_Struct.filename = path.string();
             Parsed_Archive_Struct.file_size = big4_fat.size;
             Parsed_Archive_Struct.file_offset = big4_fat.offset;
 

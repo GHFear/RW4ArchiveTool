@@ -1,7 +1,6 @@
- // EA Skate SF Parser By GHFear.
+ // EA Skate Archive Parser, Unpacker and Packer By GHFear.
 
 #include "rw4_archive_tool.h"
-#include "Archives/IoTools/IoTools.h"
 #include "Archives/Parsers/magic_parser.h"
 #include "Archives/Parsers/sf_parser.h"
 #include "Archives/Parsers/big_eb_parser.h"
@@ -251,15 +250,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         int windowHeight = HIWORD(lParam);
 
         // left side
-        int left_listview_width = ((windowWidth) / 2);
+        int left_listview_width = ((windowWidth) / 4);
         int left_listview_height = std::round((2.0 * windowHeight) / 3.0);
 
         // Right side top
-        int right_top_listview_width = ((windowWidth) / 2);
+        int right_top_listview_width = windowWidth - left_listview_width;
         int right_top_listview_height = std::round((2.0 * windowHeight) / 3.0);
 
         // Right side bottom
-        int right_bottom_listview_width = ((windowWidth) / 2);
+        int right_bottom_listview_width = windowWidth - left_listview_width;
         int right_bottom_listview_height = windowHeight - right_top_listview_height;
 
         // Padding
@@ -268,7 +267,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
         int outer_border_padding = 5;
 
         MoveWindow(hwndListView, 5, 0, left_listview_width - middle_padding, windowHeight - outer_border_padding, TRUE);
-        MoveWindow(hwndListView2, right_top_listview_width, 0, right_top_listview_width - outer_border_padding, right_top_listview_height - right_divider_padding, TRUE);
+        MoveWindow(hwndListView2, left_listview_width, 0, right_top_listview_width - outer_border_padding, right_top_listview_height - right_divider_padding, TRUE);
         MoveWindow(hwndListView3, left_listview_width, right_top_listview_height, right_bottom_listview_width - outer_border_padding, right_bottom_listview_height - outer_border_padding, TRUE);
 
         SendMessage(Big4PackerWindow::hwnd_CreateBigPacker, WM_SIZE, wParam, lParam);

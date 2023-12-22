@@ -58,9 +58,18 @@
     <ClInclude Include="Windows\FindWindow.h">
       <Filter>Headers\Windows</Filter>
     </ClInclude>
-    <ClInclude Include="Archives\IoTools\IoTools.h" />
-    <ClInclude Include="Archives\Packers\big4_packer.h" />
-    <ClInclude Include="Windows\Big4PackerWindow.h" />
+    <ClInclude Include="Archives\Tools\IoTools.h">
+      <Filter>Headers\Archives\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\Big4PackerWindow.h">
+      <Filter>Headers\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Packers\big4_packer.h">
+      <Filter>Headers\Archives\Packers</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Tools\EAHashes.h">
+      <Filter>Headers\Archives\Tools</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\RW4ArchiveTool.ico">
@@ -118,6 +127,9 @@
     </Filter>
     <Filter Include="Headers\Windows">
       <UniqueIdentifier>{f4201893-eb59-444d-985d-e93fc449e0dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Archives\Packers">
+      <UniqueIdentifier>{8276dafd-bf7a-4def-857c-911db974ac30}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
