@@ -72,27 +72,27 @@ namespace EAHashes {
 
 		return ~seed;
 	}
+  
+	uint32_t djb2_hash_32(const char* str) {
+		uint32_t hash = 5381;
+		int c;
 
-    uint32_t djb2_hash_32(const char* str) {
-        uint32_t hash = 5381;
-        int c;
+		while ((c = *str++)) {
+			hash = ((hash << 5) + hash) + c;
+		}
 
-        while ((c = *str++)) {
-            hash = ((hash << 5) + hash) + c;
-        }
+		return hash;
+	}
 
-        return hash;
-    }
+	uint64_t djb2_hash_64(const char* str) {
+		uint64_t hash = 5381;
+		int c;
 
-    uint64_t djb2_hash_64(const char* str) {
-        uint64_t hash = 5381;
-        int c;
+		while ((c = *str++)) {
+			hash = ((hash << 5) + hash) + c;
+		}
 
-        while ((c = *str++)) {
-            hash = ((hash << 5) + hash) + c;
-        }
-
-        return hash;
-    }
+		return hash;
+	}
 }
 

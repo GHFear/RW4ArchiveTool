@@ -33,7 +33,7 @@ namespace big4
 		uint32_t header_size;
 	};
 
-	struct BH_TOC_Hash32
+	struct BH_TOC_Hash32 //  Use this for 32 bit namehashes.
 	{
 		uint32_t offset;
 		uint32_t size;
@@ -41,7 +41,7 @@ namespace big4
 		uint32_t hash;
 	};
 
-	struct BH_TOC_Hash64
+	struct BH_TOC_Hash64 //  Use this for 64 bit namehashes.
 	{
 		uint32_t offset;
 		uint32_t size;
@@ -66,8 +66,7 @@ namespace big4
 
 	const char* Big4_Magic_Setting[2] = { "BIG4", "BIGF" };
 
-	uint64_t get_big4_toc_index_size(const std::wstring& input_wstring)
-	{
+	uint64_t get_big4_toc_index_size(const std::wstring& input_wstring) {
 		return 8 + input_wstring.length() + 1;
 	}
 
@@ -78,14 +77,15 @@ namespace big4
 		size_t current_offset = outfile.tellp();
 
 		if (current_offset % alignment == 0) {
-			// No påadding needed.
-			return false;
+			// No padding needed.
+			return true;
 		}
 		else {
 			size_t padding_size = alignment - (current_offset % alignment);
 			for (size_t i = 0; i < padding_size; i++)
 			{
 				outfile.write(reinterpret_cast<const char*>(&padding), 1);
+				if (!outfile.good()) { return false; }
 			}
 			return true;
 		}
@@ -106,8 +106,7 @@ namespace big4
 		uint32_t footer_size = 16;
 		uint32_t file_count = Big4Toc_vector.size();
 
-		if (IsHash64 == true)
-		{
+		if (IsHash64 == true) {
 			toc_size = 20 * Big4Toc_vector.size();
 		}
 
@@ -119,8 +118,7 @@ namespace big4
 		BHHeader.header_size = BigToLittleUINT(BHHeader.size); // Set header size. (Big endian)
 		outfile.write(reinterpret_cast<const char*>(&BHHeader), sizeof(BHHeader)); // Write header
 
-		if (IsHash64 == true)
-		{
+		if (IsHash64 == true) {
 			// BH TOC 64
 			BH_TOC_Hash64 BH_TOC = {};
 			for (size_t i = 0; i < Big4Toc_vector.size(); i++)
@@ -137,8 +135,7 @@ namespace big4
 				outfile.write(reinterpret_cast<const char*>(&BH_TOC.hash), 8);
 			}
 		}
-		else
-		{
+		else {
 			// BH TOC 32
 			BH_TOC_Hash32 BH_TOC = {};
 			for (size_t i = 0; i < Big4Toc_vector.size(); i++)
@@ -172,7 +169,7 @@ namespace big4
 	}
 
 
-	Big4Header write_init_header_section(std::vector<std::string>& toc_compatible_filepaths, bool Big4IsBigFCheckState, std::ofstream& outfile)
+	bool write_init_header_section(std::vector<std::string>& toc_compatible_filepaths, bool Big4IsBigFCheckState, std::ofstream& outfile)
 	{
 		Big4Header header = {};
 		if (Big4IsBigFCheckState == true) {
@@ -186,32 +183,34 @@ namespace big4
 		header.number_files = BigToLittleUINT((uint32_t)toc_compatible_filepaths.size());
 		header.header_length = sizeof(Big4Header) + toc_compatible_filepaths.size() * sizeof(Big4Toc) + sizeof(Big4HeaderTailSettings);
 		outfile.write(reinterpret_cast<const char*>(&header), sizeof(Big4Header));
+		if (!outfile.good()) { return false; }
 
-		return header;
+		return true;
 	}
 
-	void update_header_section(const uint32_t& header_end_position, const uint32_t& archive_end_position, std::ofstream& outfile)
+	bool update_header_section(const uint32_t& header_end_position, const uint32_t& archive_end_position, std::ofstream& outfile)
 	{
 		uint32_t archive_length = archive_end_position;
 		uint32_t header_length = BigToLittleUINT(header_end_position);
 		outfile.seekp(4, std::ios::beg);
 		outfile.write(reinterpret_cast<const char*>(&archive_length), sizeof(4));
+		if (!outfile.good()) { return false; }
 		outfile.seekp(12, std::ios::beg);
 		outfile.write(reinterpret_cast<const char*>(&header_length), sizeof(4));
+		if (!outfile.good()) { return false; }
 
-		return;
+		return true;
 	}
 
-	auto write_toc_section(std::vector<std::string>& toc_compatible_filepaths, std::ofstream& outfile, std::vector<std::string> filepaths)
+	auto write_toc_section(std::vector<std::string>& toc_compatible_filepaths, std::ofstream& outfile, const std::vector<std::string>& filepaths)
 	{
 		std::vector<uint32_t> toc_offset_offset_vector = {};
 		std::vector<Big4Toc> Big4Toc_vector = {};
-		struct RESULTS { std::vector<Big4Toc> Big4Toc_vector; std::vector<uint32_t> toc_offset_offset_vector; };
+		struct RESULTS { std::vector<Big4Toc> Big4Toc_vector; std::vector<uint32_t> toc_offset_offset_vector; bool bSuccess; };
 
 		for (size_t i = 0; i < filepaths.size(); i++) {
-			std::streampos currentPosition = outfile.tellp();
-			uint32_t currentPositionUint32 = static_cast<uint32_t>(currentPosition);
-			toc_offset_offset_vector.push_back(currentPositionUint32);
+			uint32_t current_toc_offsetvalue_position = static_cast<uint32_t>(outfile.tellp());
+			toc_offset_offset_vector.push_back(current_toc_offsetvalue_position); // This vector contains the offset to the toc offset and not the fileoffset itself.
 
 			Big4Toc toc;
 			toc.offset = 0;
@@ -227,29 +226,36 @@ namespace big4
 
 			// Write TOC entry
 			outfile.write(reinterpret_cast<const char*>(&toc.offset), sizeof(toc.offset));
+			if (!outfile.good()) { return RESULTS{ Big4Toc_vector, toc_offset_offset_vector, false }; }
 			outfile.write(reinterpret_cast<const char*>(&toc.size), sizeof(toc.size));
+			if (!outfile.good()) { return RESULTS{ Big4Toc_vector, toc_offset_offset_vector, false }; }
 			outfile.write(reinterpret_cast<const char*>(filenameBuffer.data()), filenameBuffer.size());
+			if (!outfile.good()) { return RESULTS{ Big4Toc_vector, toc_offset_offset_vector, false }; }
 			outfile.write(reinterpret_cast<const char*>(&toc.zero_terminator), sizeof(toc.zero_terminator));
+			if (!outfile.good()) { return RESULTS{ Big4Toc_vector, toc_offset_offset_vector, false }; }
 		}
-		return RESULTS{ Big4Toc_vector, toc_offset_offset_vector };
+
+		return RESULTS{ Big4Toc_vector, toc_offset_offset_vector, true };
 	}
 
-	void update_toc_section(std::vector<Big4Toc>& Big4Toc_vector, std::vector<uint32_t> toc_offset_offset_vector, std::vector<uint32_t> offset_vector, std::ofstream& outfile)
+	bool update_toc_section(std::vector<Big4Toc>& Big4Toc_vector, const std::vector<uint32_t>& toc_offset_offset_vector, const std::vector<uint32_t>& offset_vector, std::ofstream& outfile)
 	{
-
+		// Update the information in the TOC.
 		for (size_t i = 0; i < toc_offset_offset_vector.size(); i++)
 		{
 			outfile.seekp(toc_offset_offset_vector[i], std::ios::beg);
 			uint32_t offset = BigToLittleUINT(offset_vector[i]);
 			Big4Toc_vector[i].offset = offset;
 			outfile.write(reinterpret_cast<const char*>(&offset), sizeof(4));
+			if (!outfile.good()) { return false; }
 		}
 
-		return;
+		return true;
 	}
 
-	Big4HeaderTailSettings write_settings_section(std::ofstream& outfile, bool Big4CompressionCheckState)
+	bool write_settings_section(std::ofstream& outfile, bool Big4CompressionCheckState)
 	{
+		// Check compression type.
 		uint16_t bIsCompressed = 0;
 		if (Big4CompressionCheckState == true) {
 			bIsCompressed = 1;
@@ -260,14 +266,98 @@ namespace big4
 
 		Big4HeaderTailSettings settings = {};
 		std::memcpy(settings.Version, "L282", 4);
-		settings.DJBHashKey = BigToLittleUINT((uint16_t)5381);  // Replace with your desired value
-		settings.bIsCompressed = BigToLittleUINT(bIsCompressed); // Replace with your desired value
+		settings.DJBHashKey = BigToLittleUINT((uint16_t)5381);  // Replace with your desired value (hash key) (Skate and most EA Games uses 5381)
+		settings.bIsCompressed = BigToLittleUINT(bIsCompressed);
 		outfile.write(reinterpret_cast<const char*>(&settings), sizeof(settings));
+		if (!outfile.good()) { return false; }
 
-		return settings;
+		return true;
 	}
 
-	bool bundlebig4(std::vector<std::wstring> filepaths_wstring, std::wstring selected_path, std::wstring save_bigfile_path, Big4Packer_Settings big4_packer_settings)
+	bool write_filecontent_section(std::ofstream& outfile, const std::vector<std::string>& filepaths, std::vector<uint32_t>& offset_vector)
+	{
+		for (size_t i = 0; i < filepaths.size(); i++) {
+			uint32_t file_offset = static_cast<uint32_t>(outfile.tellp());
+			offset_vector.push_back(file_offset);
+
+			// Check if file is empty and don't read it if it is.
+			if (isFileEmpty(filepaths[i])) {
+				continue;
+			}
+
+			// Read file from filepaths list and push file buffer to archive.
+			std::ifstream infile(filepaths[i], std::ios::binary);
+			if (infile.is_open()) {
+				outfile << infile.rdbuf();
+				infile.close();
+			}
+			else {
+				std::cerr << "Error: Unable to open file: " << filepaths[i] << std::endl;
+				return false;
+			}
+
+			// Add padding to the next index evenly divisible by 64 (if we need to)
+			if (i < filepaths.size() - 1) {
+				if (!addPadding(outfile)) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	bool IsWithinBig4SizeLimit(const std::vector<std::string>& filepaths)
+	{
+		static const uint8_t padding = 0;
+		uint8_t alignment = 64;
+		uint64_t size = 16; // Add header size right away.
+		uint64_t current_offset = 0;
+
+		for (uint64_t i = 0; i < filepaths.size(); i++) {
+			size += 8; // Add size and offset size for each entry.
+			size += filepaths[i].length() + 1; // Add string length + zero terminator size.
+		}
+
+		size += 8; // Add options / settings size.
+
+		current_offset = size;
+		if (current_offset % alignment == 0) {
+			// No padding needed.
+		}
+		else {
+			uint64_t padding_size = alignment - (current_offset % alignment);
+			for (uint64_t i = 0; i < padding_size; i++) {
+				size += 1; // Add padding
+			}
+		}
+
+		for (size_t i = 0; i < filepaths.size(); i++)
+		{
+			size += fs::file_size(filepaths[i]); // add file size
+			current_offset = size;
+			if (i < filepaths.size() - 1) {
+				if (current_offset % alignment == 0) {
+					// No padding needed.
+				}
+				else {
+					uint64_t padding_size = alignment - (current_offset % alignment);
+					for (size_t i = 0; i < padding_size; i++) {
+						size += 1; // Add padding
+					}
+				}
+			}
+		}
+
+		// Check if final build size will be bigger than largest uint32 value. 0xFFFFFFFF | 4294967295
+		if (size > 4294967295) {
+			return false;
+		}
+		else {
+			return true;
+		}
+	}
+
+	bool bundlebig4(std::vector<std::wstring> filepaths_wstring, std::wstring selected_path, std::wstring save_bigfile_path, Big4Packer_Settings big4_packer_settings) 
 	{
 		std::vector<Big4Toc> Big4Toc_vector = {};
 		std::wstring top_level_path = removeLastFolder(selected_path);
@@ -278,7 +368,6 @@ namespace big4
 		std::vector<uint32_t> offset_vector = {};
 		std::string OutArchivePath = WideStringToString(save_bigfile_path);
 		std::string BigHeaderPath = replaceFileExtension(WideStringToString(save_bigfile_path), ".bh");
-
 
 		for (size_t i = 0; i < filepaths_wstring.size(); i++)
 		{
@@ -295,6 +384,13 @@ namespace big4
 			filepaths.push_back(WideStringToString(filepaths_wstring[i]));
 		}
 
+		// Check if archive will be within the size limits.
+		if (!IsWithinBig4SizeLimit(filepaths))
+		{
+			MessageBox(0, L"ERROR: Archive would exceed uint32 size limit of 4294967295 bytes!\nBuild process stopped.", L"Packer Prompt", MB_OK | MB_ICONERROR);
+			return false;
+		}
+
 		std::ofstream outfile(OutArchivePath, std::ios::binary);
 
 		if (!outfile.is_open()) {
@@ -303,61 +399,67 @@ namespace big4
 		}
 
 		// Write Header.
-		Big4Header header = write_init_header_section(toc_compatible_filepaths, big4_packer_settings.Big4IsBigFCheckState, outfile);
+		if (!write_init_header_section(toc_compatible_filepaths, 
+				big4_packer_settings.Big4IsBigFCheckState, outfile)) {
+			outfile.close();
+			return false;
+		}
 
 		// Write TOC entries.
 		auto Big4Toc_RESULT = write_toc_section(toc_compatible_filepaths, outfile, filepaths);
+		if (!Big4Toc_RESULT.bSuccess) {
+			outfile.close();
+			return false;
+		}
 		Big4Toc_vector = Big4Toc_RESULT.Big4Toc_vector;
 
 		// Write Settings.
-		Big4HeaderTailSettings settings = write_settings_section(outfile, big4_packer_settings.Big4CompressionCheckState);
+		if (!write_settings_section(outfile, 
+				big4_packer_settings.Big4CompressionCheckState)) {
+			outfile.close();
+			return false;
+		}
 
 		// Save header size.
 		uint32_t header_end_position = static_cast<uint32_t>(outfile.tellp());
 
 		// Add padding to the next index evenly divisible by 64 (if we need to)
-		addPadding(outfile);
-
-		// Write files to archive.
-		for (size_t i = 0; i < filepaths.size(); i++) {
-			uint32_t file_offset = static_cast<uint32_t>(outfile.tellp());
-			offset_vector.push_back(file_offset);
-
-			if (!isFileEmpty(filepaths[i]))
-			{
-				std::ifstream infile(filepaths[i], std::ios::binary);
-				if (infile.is_open()) {
-					outfile << infile.rdbuf();
-					infile.close();
-				}
-				else {
-					std::cerr << "Error: Unable to open file: " << filepaths[i] << std::endl;
-					return false;
-				}
-
-				// Add padding to the next index evenly divisible by 64 (if we need to)
-				if (i < filepaths.size() - 1)
-				{
-					addPadding(outfile);
-				}
-			}
+		if (!addPadding(outfile)) {
+			outfile.close();
+			return false;
 		}
 
-		// Save archive size.
+		// Write files to archive.
+		if (!write_filecontent_section(outfile, filepaths, offset_vector)) {
+			outfile.close();
+			return false;
+		}
+
+		// Save archive size and check if it's bigger than uint32 maximum.
 		uint32_t archive_end_position = static_cast<uint32_t>(outfile.tellp());
 
-		// Update header and toc with saved information.
-		update_header_section(header_end_position, archive_end_position, outfile);
-		update_toc_section(Big4Toc_vector, Big4Toc_RESULT.toc_offset_offset_vector, offset_vector, outfile);
+		// Update header with saved information.
+		if (!update_header_section(header_end_position, archive_end_position, outfile)) {
+			outfile.close();
+			return false;
+		}
+		// Update toc with saved information.
+		if (!update_toc_section(Big4Toc_vector, 
+				Big4Toc_RESULT.toc_offset_offset_vector, offset_vector, outfile)) {
+			outfile.close();
+			return false;
+		}
 
-		// Close filestream.
+		// Close filestream. (We have already done every we need with this filestream)
 		outfile.close();
 
-		// Write header file.
-		BuildBHVIV4(Big4Toc_vector, BigHeaderPath, archive_end_position, big4_packer_settings.IsHash64CheckState);
+		// Write BH header file.
+		if (!BuildBHVIV4(Big4Toc_vector, BigHeaderPath, 
+				archive_end_position, big4_packer_settings.IsHash64CheckState)) {
+			return false;
+		}
 
-		std::cout << "Archive created successfully: " << OutArchivePath << std::endl;
-
+		// Archive created successfully.
 		return true;
 	}
 

@@ -70,6 +70,7 @@
     <ClInclude Include="Archives\Tools\EAHashes.h">
       <Filter>Headers\Archives\Tools</Filter>
     </ClInclude>
+    <ClInclude Include="Archives\Compression\lzx\lzx.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\RW4ArchiveTool.ico">
@@ -141,5 +142,6 @@
     <ClCompile Include="rw4_archive_tool.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Archives\Compression\lzx\lzx.c" />
   </ItemGroup>
 </Project>
