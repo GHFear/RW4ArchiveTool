@@ -23,7 +23,7 @@
 -Refpack <br>
 -Chunked Refpack <br>
 -Chunked ZLib / Deflate <br>
--Chunked LZX <br>
+-Chunked LZX (xdecompress.lib variant from Xbox 360) <br>
 
 **Features I need to add:** <br>
 -Settings menu where you can force parse type and do other important things like setting the different struct types and values manually. <br>
