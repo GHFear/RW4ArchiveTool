@@ -3,7 +3,7 @@
 #pragma once
 #include "refpack/refpackd.h"
 #include "Zlib/Include/zlib-1.3/zlib.h"
-#include "lzx/lzx.h"
+#include "lzx/xmem_lzx.h"
 #include "IoTools.h"
 #include "../Structs/SF_Structs.h"
 #include "../../Tools/Paths/Paths.h"
@@ -175,46 +175,70 @@ namespace big_eb
       fread(file_buffer, block_header.chunkSizeCompressed, 1, archive); // Read file into buffer
       std::vector<uint8_t> decompression_in_buffer_vector(file_buffer, file_buffer + block_header.chunkSizeCompressed);
 
-      // Check if the chunk is compressed.
-      if (block_header.compressionType == 1) // Chunk is compressed with zlib.
-      {
+      // Chunk is compressed with zlib.
+      if (block_header.compressionType == 1) { 
         // Allocate a buffer for the decompressed data
         size_t chunk_decompressed_size = chunk_pack_header.uncompressedLength;
-        unsigned char* decompressedData = new unsigned char[chunk_decompressed_size];
+        unsigned char* decompressed_data = new unsigned char[chunk_decompressed_size];
 
         // Decompress the data
-        if (decompress_deflate(decompression_in_buffer_vector.data(), block_header.chunkSizeCompressed, decompressedData, chunk_decompressed_size)) {
+        if (decompress_deflate(decompression_in_buffer_vector.data(), 
+            block_header.chunkSizeCompressed, decompressed_data, chunk_decompressed_size)) {
           decompressed_size += chunk_decompressed_size;
-          decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), decompressedData, decompressedData + chunk_decompressed_size);
-          delete[] decompressedData;
+          decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), decompressed_data, decompressed_data + chunk_decompressed_size);
+          // Delete buffers.
+          delete[] decompressed_data;
         }
-        else {
-          std::cerr << "Decompression failed." << std::endl;
+        else { // Failed decompression.
           MessageBoxA(0, "Decompression failed! Reach out to GHFear for support.", "Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+          delete[] decompressed_data;
           free(file_buffer);
           return false;
         }
       }
-      else if (block_header.compressionType == 2) // Chunk is compressed with refpack.
-      {
+
+      // Chunk is compressed with refpack.
+      else if (block_header.compressionType == 2) { 
         std::vector<uint8_t> chunk_decompression_out_buffer_vector = refpack::decompress(decompression_in_buffer_vector);
         decompressed_size += chunk_decompression_out_buffer_vector.size();
         decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), chunk_decompression_out_buffer_vector.begin(), chunk_decompression_out_buffer_vector.end());
       }
-      else if (block_header.compressionType == 3) // Chunk is compressed with lzx. (I am working on adding support for this.)
-      {
-        size_t chunk_decompressed_size = chunk_pack_header.uncompressedLength;
-        size_t compressed_size = block_header.chunkSizeCompressed;
-        MessageBoxA(0, "Unsupported compression type (LZX)! I am already working on it. :)", "Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
-        free(file_buffer);
-        return false;
+
+      // Chunk is compressed with lzx.
+      else if (block_header.compressionType == 3) { 
+        
+        // Check uncompress type and set length / size. (single or multi chunk)
+        int uncompressed_size = chunk_pack_header.uncompressedLength;
+        if (chunk_pack_header.numSegments > 1 && i != (chunk_pack_header.numSegments - 1)) {
+          uncompressed_size = chunk_pack_header.blockSize;
+        }
+        else if (chunk_pack_header.numSegments > 1 && i == (chunk_pack_header.numSegments - 1)) {
+          uncompressed_size = chunk_pack_header.uncompressedLength - decompressed_size;
+        }
+
+        // Create decompressed data buffer.
+        unsigned char* decompressed_data = new unsigned char[uncompressed_size];
+
+        //Decompress LZX data buffer.
+        if (appDecompressLZX(decompression_in_buffer_vector.data(), block_header.chunkSizeCompressed, decompressed_data, uncompressed_size)) {
+          decompressed_size += uncompressed_size;
+          decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), decompressed_data, decompressed_data + uncompressed_size);
+          // Delete buffers.
+          delete decompressed_data;
+        }
+        else { // Failed decompression.
+          MessageBoxA(0, "Decompression failed! Reach out to GHFear for support.", "Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
+          delete[] decompressed_data;
+          free(file_buffer);
+          return false;
+        }
       }
-      else if (block_header.compressionType == 4) // Chunk is not compressed
-      {
+
+      // Chunk is not compressed
+      else if (block_header.compressionType == 4) { 
         decompression_out_buffer_vector.insert(decompression_out_buffer_vector.end(), decompression_in_buffer_vector.begin(), decompression_in_buffer_vector.end());
       }
-      else
-      {
+      else {
         MessageBoxA(0, "Unknown compression type! Reach out to GHFear for support.", "Unpacker Prompt", MB_OK | MB_ICONINFORMATION);
         free(file_buffer);
         return false;
@@ -453,7 +477,7 @@ namespace big_eb
 
       if (!unpack) {
         // Set Parsed_Archive struct members.
-        Parsed_Archive_Struct.filename = folder + name;
+        Parsed_Archive_Struct.filename = folder + "/" + name;
         Parsed_Archive_Struct.file_size = size_Vector[i];
         Parsed_Archive_Struct.file_offset = offset_Vector[i];
         Parsed_Archive_Struct.toc_offset = toc_offset_Vector[i];

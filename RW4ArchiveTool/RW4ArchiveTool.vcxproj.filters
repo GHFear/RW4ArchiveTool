@@ -70,7 +70,24 @@
     <ClInclude Include="Archives\Tools\EAHashes.h">
       <Filter>Headers\Archives\Tools</Filter>
     </ClInclude>
-    <ClInclude Include="Archives\Compression\lzx\lzx.h" />
+    <ClInclude Include="Archives\Compression\lzx\xmem_lzx.h">
+      <Filter>Headers\Archives\Compression\lzx</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Compression\lzx\mspack\lzx.h">
+      <Filter>Headers\Archives\Compression\lzx\mspack</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Compression\lzx\mspack\mspack.h">
+      <Filter>Headers\Archives\Compression\lzx\mspack</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Compression\lzx\mspack\readbits.h">
+      <Filter>Headers\Archives\Compression\lzx\mspack</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Compression\lzx\mspack\readhuff.h">
+      <Filter>Headers\Archives\Compression\lzx\mspack</Filter>
+    </ClInclude>
+    <ClInclude Include="Archives\Compression\lzx\mspack\system.h">
+      <Filter>Headers\Archives\Compression\lzx\mspack</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\RW4ArchiveTool.ico">
@@ -132,6 +149,12 @@
     <Filter Include="Headers\Archives\Packers">
       <UniqueIdentifier>{8276dafd-bf7a-4def-857c-911db974ac30}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Headers\Archives\Compression\lzx">
+      <UniqueIdentifier>{dad3c537-ee5b-4537-b56d-fbfee016e6c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers\Archives\Compression\lzx\mspack">
+      <UniqueIdentifier>{0ce8eca9-ef9f-46c7-addc-febcb8378302}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources\RW4ArchiveTool.rc">
@@ -142,6 +165,8 @@
     <ClCompile Include="rw4_archive_tool.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Archives\Compression\lzx\lzx.c" />
+    <ClCompile Include="Archives\Compression\lzx\mspack\lzxd.c">
+      <Filter>Headers\Archives\Compression\lzx\mspack</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
