@@ -23,8 +23,6 @@
 -Refpack <br>
 -Chunked Refpack <br>
 -Chunked ZLib / Deflate <br>
-
-**(Compression types that I need to add support for)** <br>
 -Chunked LZX <br>
 
 **Features I need to add:** <br>
