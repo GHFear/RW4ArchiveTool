@@ -1,5 +1,5 @@
 # RW4ArchiveTool
-*EA Sports RW4 Archive parser, unpacker, decompressor and packer.* <br>
+*EA Games / EA Sports RW4 Archive parser, unpacker, decompressor and packer.* <br>
 *(More packers coming soon).* <br>
 
 **Unpacking Support:** <br>
