@@ -1,5 +1,6 @@
 # RW4ArchiveTool
-*RW4 Archive parser, unpacker, decompressor and (packers coming soon).* <br>
+*EA Sports RW4 Archive parser, unpacker, decompressor and Packer.* <br>
+*(More packers coming soon).* <br>
 
 **Unpacking Support:** <br>
 -XSF ( Xbox 360 StreamFile ) <br>
